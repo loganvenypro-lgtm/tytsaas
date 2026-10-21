@@ -23,13 +23,15 @@ import {
 import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon, ShieldCheckIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 
+import { toast } from "@/components/ui/toast"
 import { signOut } from "@/lib/auth-client"
+import { resolveAvatar } from "@/lib/avatar"
 import type { SessionUser } from "@/lib/session"
 
 export function NavUser({ user }: { user: SessionUser }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
-  const avatar = user.image ?? undefined
+  const avatar = resolveAvatar(user)
   const initials = user.name
     .split(" ")
     .map((part) => part[0])
@@ -39,6 +41,7 @@ export function NavUser({ user }: { user: SessionUser }) {
 
   async function handleLogout() {
     await signOut()
+    toast.add({ type: "success", title: "Tu es déconnecté" })
     router.push("/login")
     router.refresh()
   }
@@ -52,7 +55,7 @@ export function NavUser({ user }: { user: SessionUser }) {
               <SidebarMenuButton size="lg" className="aria-expanded:bg-muted" />
             }
           >
-            <Avatar className="size-8 rounded-lg grayscale">
+            <Avatar className="size-8 rounded-lg">
               <AvatarImage src={avatar} alt={user.name} />
               <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
             </Avatar>
@@ -88,12 +91,12 @@ export function NavUser({ user }: { user: SessionUser }) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
                 <CircleUserRoundIcon
                 />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/settings?tab=account")}>
                 <CreditCardIcon
                 />
                 Billing

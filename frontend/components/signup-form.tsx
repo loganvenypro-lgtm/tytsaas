@@ -14,6 +14,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { toast } from "@/components/ui/toast"
 import { signUp } from "@/lib/auth-client"
 import { GalleryVerticalEndIcon } from "lucide-react"
 
@@ -48,6 +49,7 @@ export function SignupForm({
       setPending(false)
       return
     }
+    toast.add({ type: "success", title: "Compte créé", description: "Bienvenue sur Acme Inc. !" })
     router.push("/")
     router.refresh()
   }

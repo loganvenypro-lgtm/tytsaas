@@ -39,7 +39,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/toast"
 import { z } from "zod"
 
 import { useIsMobile } from "@/hooks/use-mobile"

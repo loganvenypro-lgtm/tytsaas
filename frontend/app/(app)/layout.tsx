@@ -1,15 +1,11 @@
-import { redirect } from "next/navigation"
-
-import { AdminView } from "@/components/admin/admin-view"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { requireSession } from "@/lib/session"
 
-/** /admin: every user, onboarding, AI result and database of the site. Admins only. */
-export default async function AdminPage() {
+/** Shell of every signed-in page: sidebar, header, and a verified session. */
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = await requireSession()
-  if (user.role !== "admin") redirect("/")
 
   return (
     <SidebarProvider
@@ -22,8 +18,8 @@ export default async function AdminPage() {
     >
       <AppSidebar variant="inset" user={user} />
       <SidebarInset>
-        <SiteHeader title="Admin" />
-        <AdminView adminEmail={user.email} />
+        <SiteHeader />
+        {children}
       </SidebarInset>
     </SidebarProvider>
   )

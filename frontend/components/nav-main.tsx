@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -19,23 +21,13 @@ import {
 } from "@/components/ui/collapsible"
 import { ChevronDownIcon } from "lucide-react"
 
-export type NavItem = {
-  title: string
-  url: string
-  icon: React.ComponentType<{ className?: string }>
-  isActive?: boolean
-  items?: {
-    title: string
-    url: string
-  }[]
-}
-
-export type NavSection = {
-  label: string
-  items: NavItem[]
-}
+import { isActive, type NavSection } from "@/lib/nav"
 
 export function NavMain({ sections }: { sections: NavSection[] }) {
+  const pathname = usePathname()
+  // Folders the user opened or closed by hand; the others follow the current page
+  const [openFolders, setOpenFolders] = React.useState<Record<string, boolean>>({})
+
   return (
     <div className="flex flex-col gap-2">
       {sections.map((section) => (
@@ -47,11 +39,13 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
             <SidebarMenu className="gap-0.5">
               {section.items.map((item) => {
                 const Icon = item.icon
+                const active = isActive(item.url, pathname)
                 if (item.items && item.items.length > 0) {
                   return (
                     <Collapsible
                       key={item.title}
-                      defaultOpen={item.isActive}
+                      open={openFolders[item.url] ?? active}
+                      onOpenChange={(open) => setOpenFolders((prev) => ({ ...prev, [item.url]: open }))}
                       className="group/collapsible"
                     >
                       <SidebarMenuItem>
@@ -60,7 +54,7 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                             <SidebarMenuButton
                               tooltip={item.title}
                               className={
-                                item.isActive
+                                active
                                   ? "bg-accent font-medium text-accent-foreground"
                                   : ""
                               }
@@ -75,10 +69,10 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                           <SidebarMenuSub>
                             {item.items.map((subItem) => (
                               <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton asChild>
-                                  <a href={subItem.url}>
+                                <SidebarMenuSubButton asChild isActive={isActive(subItem.url, pathname)}>
+                                  <Link href={subItem.url}>
                                     <span>{subItem.title}</span>
-                                  </a>
+                                  </Link>
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>
                             ))}
@@ -92,16 +86,19 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
+                      asChild
                       tooltip={item.title}
-                      isActive={item.isActive}
+                      isActive={active}
                       className={
-                        item.isActive
+                        active
                           ? "bg-accent font-medium text-accent-foreground shadow-xs"
                           : ""
                       }
                     >
-                      <Icon className="size-4 shrink-0" />
-                      <span>{item.title}</span>
+                      <Link href={item.url}>
+                        <Icon className="size-4 shrink-0" />
+                        <span>{item.title}</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )

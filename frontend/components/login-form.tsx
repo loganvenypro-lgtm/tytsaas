@@ -14,6 +14,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { toast } from "@/components/ui/toast"
 import { signIn } from "@/lib/auth-client"
 import { GalleryVerticalEndIcon } from "lucide-react"
 
@@ -41,6 +42,7 @@ export function LoginForm({
       setPending(false)
       return
     }
+    toast.add({ type: "success", title: "Content de te revoir" })
     router.push("/")
     router.refresh()
   }
