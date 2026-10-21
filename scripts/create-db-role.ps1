@@ -4,8 +4,14 @@
 # It temporarily lets the "postgres" user log in from this machine without a
 # password, runs CREATE/ALTER ROLE, then restores pg_hba.conf and reloads.
 #
+# -GrantReadOn also gives the role read access to other databases on the
+# server (e.g. the old Outlr database, for scripts/import-outlr.js).
+#
 # Run as Administrator:
 #   powershell -ExecutionPolicy Bypass -File scripts\create-db-role.ps1
+#   powershell -ExecutionPolicy Bypass -File scripts\create-db-role.ps1 -GrantReadOn newiq
+
+param([string[]]$GrantReadOn = @())
 
 $ErrorActionPreference = "Stop"
 
@@ -74,6 +80,21 @@ END
   $psqlExit = $LASTEXITCODE
   $ErrorActionPreference = "Stop"
   if ($psqlExit -ne 0) { throw "psql failed creating the role" }
+
+  foreach ($db in $GrantReadOn) {
+    if ($db -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') { throw "Unexpected database name '$db'" }
+    $grant = "GRANT CONNECT ON DATABASE $db TO $roleName; " +
+      "GRANT USAGE ON SCHEMA public TO $roleName; " +
+      "GRANT SELECT ON ALL TABLES IN SCHEMA public TO $roleName; " +
+      "GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO $roleName;"
+    $ErrorActionPreference = "Continue"
+    & (Join-Path $pgBin "psql.exe") -h 127.0.0.1 -U postgres -d $db -w -v ON_ERROR_STOP=1 -q -c $grant 2>&1 |
+      ForEach-Object { "$_" }
+    $psqlExit = $LASTEXITCODE
+    $ErrorActionPreference = "Stop"
+    if ($psqlExit -ne 0) { throw "psql failed granting read access on $db" }
+    Write-Host "Granted $roleName read access on $db"
+  }
 }
 finally {
   Copy-Item $backup $hbaPath -Force

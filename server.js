@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./lib/auth.js";
+import adminRoutes from "./routes/admin.js";
 
 const app = express();
 
@@ -17,6 +18,8 @@ app.use(
 app.all("/api/auth/{*any}", toNodeHandler(auth));
 
 app.use(express.json());
+
+app.use("/api/admin", adminRoutes);
 
 app.get("/api/me", async (req, res) => {
   const session = await auth.api.getSession({

@@ -20,7 +20,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
+import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon, ShieldCheckIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { signOut } from "@/lib/auth-client"
@@ -103,6 +103,12 @@ export function NavUser({ user }: { user: SessionUser }) {
                 />
                 Notifications
               </DropdownMenuItem>
+              {user.role === "admin" && (
+                <DropdownMenuItem onClick={() => router.push("/admin")}>
+                  <ShieldCheckIcon />
+                  Admin
+                </DropdownMenuItem>
+              )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
