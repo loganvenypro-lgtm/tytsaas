@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useOptionLabels } from "@/components/explorer/filter-spec";
 import { useI18n } from "@/components/i18n-provider";
+import { FilterBadge } from "@/components/top-videos/outlier-card";
 import { cn } from "@/lib/utils";
 
 export interface TrendChannel {
@@ -19,6 +21,13 @@ export interface TrendChannel {
   country: string | null;
   categoryId: number | null;
   language: string | null;
+  // Classification (lib/taxonomy on the backend); labels come from /api/filters/channels
+  niche?: string | null;
+  subNiche?: string | null;
+  style?: string | null;
+  /** Median views of recent videos. */
+  medianViews?: number | null;
+  uploadsPerWeek?: number | null;
   isShortsChannel: boolean;
   trendScore: number | null;
   recentRatio: number | null;
@@ -65,13 +74,18 @@ export function ChannelCard({
   rank,
   variant = "trends",
   onSimilar,
+  onFilter,
 }: {
   channel: TrendChannel;
   rank: number;
   variant?: "trends" | "finder";
   onSimilar: () => void;
+  /** When given, classification badges filter the list on their value. */
+  onFilter?: (key: string, value: string) => void;
 }) {
   const { t, compact, ago, language: languageName } = useI18n();
+  const labelOf = useOptionLabels("channels");
+  const category = labelOf("category", channel.categoryId) ?? (channel.categoryId != null ? t.categories[channel.categoryId] : null);
   const tc = t.breakout.card;
   const signed = (n: number) => `${n >= 0 ? "+" : "−"}${compact(Math.abs(n))}`;
   const perDay = subscribersPerDay(channel.subscribers, channel.createdAt);
@@ -108,8 +122,16 @@ export function ChannelCard({
           </div>
           <div className="flex flex-wrap gap-1">
             <Badge variant="outline">{channel.isShortsChannel ? t.common.shorts : t.common.longVideos}</Badge>
-            {channel.categoryId != null && t.categories[channel.categoryId] && (
-              <Badge variant="secondary">{t.categories[channel.categoryId]}</Badge>
+            {channel.niche ? (
+              <FilterBadge filterKey="niche" value={channel.niche} label={labelOf("niche", channel.niche)} onFilter={onFilter} variant="secondary" />
+            ) : (
+              category && <Badge variant="secondary">{category}</Badge>
+            )}
+            {channel.subNiche && (
+              <FilterBadge filterKey="subNiche" value={channel.subNiche} label={labelOf("subNiche", channel.subNiche)} onFilter={onFilter} />
+            )}
+            {channel.style && (
+              <FilterBadge filterKey="style" value={channel.style} label={labelOf("style", channel.style)} onFilter={onFilter} />
             )}
             {channel.discoveredAt && <DiscoveredBadge at={channel.discoveredAt} />}
           </div>
@@ -184,7 +206,12 @@ export function ChannelCard({
         </ScrollArea>
       )}
 
-      <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/60 p-2.5 text-center">
+      <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/60 p-2.5 text-center sm:grid-cols-4">
+        <Insight
+          value={channel.medianViews != null ? compact(channel.medianViews) : "—"}
+          label={tc.usualViews}
+          hint={tc.usualViewsHint}
+        />
         <Insight
           value={perDay != null ? `+${compact(perDay)}` : "—"}
           label={tc.perDay}

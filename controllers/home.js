@@ -1,5 +1,5 @@
 import { sql } from "../lib/sql.js";
-import { classifyChannel, nicheTsQuery, titleMatchesNiche } from "../lib/nicheClassifier.js";
+import { NICHE_BY_ID } from "../lib/taxonomy/index.js";
 import { mode, topKeywords } from "../lib/titleKeywords.js";
 import { VIDEO_COLUMNS, toVideoJson } from "../lib/videoRows.js";
 
@@ -27,11 +27,9 @@ export async function home(req, res) {
         FROM channels c WHERE c.youtube_channel_id = ${myChannelId}`
     : [];
 
-  // Niche = topic classified from my recent titles, plus their keywords, main category and language
-  let niche = null;
+  // Niche, sub-niche, language and format come from the worker's classifier
+  // (stored on the channel); my recent titles only add keywords to rank by.
   let keywords = [];
-  let category = null;
-  let language = null;
   let myVideos = [];
   if (myChannel) {
     myVideos = await sql`
@@ -40,44 +38,43 @@ export async function home(req, res) {
       WHERE v.channel_id = ${myChannel.id}
       ORDER BY v.published_at DESC
       LIMIT 40`;
-    const titles = myVideos.map((v) => v.title);
-    keywords = topKeywords(titles, 10);
-    niche = classifyChannel({ titles, name: myChannel.name });
-    category = mode(myVideos.map((v) => num(v.category_id)));
-    language = mode(myVideos.map((v) => (v.language ?? "").split("-")[0].toLowerCase() || null));
+    keywords = topKeywords(myVideos.map((v) => v.title), 10);
   }
+  const nicheId = myChannel?.niche && NICHE_BY_ID[myChannel.niche] ? myChannel.niche : null;
+  const subNicheId = nicheId ? myChannel.sub_niche ?? null : null;
+  const category = num(myChannel?.category_id) ?? mode(myVideos.map((v) => num(v.category_id)));
+  const language = myChannel?.lang ?? mode(myVideos.map((v) => v.lang ?? null));
 
   const query = keywords.length ? keywords.join(" | ") : null;
   // Recommend the creator's own format (Shorts vs long-form)
-  const isShortsCreator = myVideos.length ? myVideos.filter((v) => v.is_short).length / myVideos.length >= 0.5 : null;
+  const isShortsCreator =
+    myChannel?.short_share != null
+      ? Number(myChannel.short_share) >= 0.5
+      : myVideos.length
+        ? myVideos.filter((v) => v.is_short).length / myVideos.length >= 0.5
+        : null;
   const myInternalId = myChannel?.id ?? "";
-  const nicheId = niche?.id ?? null;
-  const nicheQuery = nicheTsQuery(nicheId);
 
-  // With a classified niche, candidates must use its vocabulary and each title is
-  // re-checked on its own: the YouTube category alone is far too broad. My keywords only rank the results.
-  const nicheHits = async () => {
-    const rows = await sql`
-      SELECT ${VIDEO_COLUMNS}
-      FROM videos v JOIN channels c ON c.id = v.channel_id
-      WHERE v.relevance_score IS NOT NULL
-        AND v.published_at > now() - interval '14 days'
-        AND v.channel_id <> ${myInternalId}
-        AND to_tsvector('simple', v.title) @@ to_tsquery('simple', ${nicheQuery})
-      ORDER BY
-        ${query ? sql`ts_rank(to_tsvector('simple', v.title), to_tsquery('simple', ${query})) * 1000 +` : sql``}
-        ${language ? sql`(CASE WHEN split_part(lower(v.language), '-', 1) = ${language} THEN 50 ELSE 0 END) +` : sql``}
-        v.relevance_score DESC
-      LIMIT 120`;
-    const onNiche = rows.filter((r) => titleMatchesNiche(r.title, nicheId));
-    const sameFormat = onNiche.filter((r) => isShortsCreator === null || Boolean(r.is_short) === isShortsCreator);
-    const otherFormat = onNiche.filter((r) => !sameFormat.includes(r));
-    return [...sameFormat, ...otherFormat].slice(0, 8);
-  };
+  // Hits classified in my niche: my format first, then same sub-niche, language
+  // and keywords before the relevance score.
+  const nicheHits = () => sql`
+    SELECT ${VIDEO_COLUMNS}
+    FROM videos v JOIN channels c ON c.id = v.channel_id
+    WHERE v.relevance_score IS NOT NULL
+      AND v.published_at > now() - interval '14 days'
+      AND v.channel_id <> ${myInternalId}
+      AND v.niche = ${nicheId}
+    ORDER BY
+      ${isShortsCreator !== null ? sql`(v.is_short = ${isShortsCreator}) DESC,` : sql``}
+      (CASE WHEN ${subNicheId}::text IS NOT NULL AND v.sub_niche = ${subNicheId} THEN 40 ELSE 0 END)
+      + (CASE WHEN ${language}::text IS NOT NULL AND v.lang = ${language} THEN 30 ELSE 0 END)
+      ${query ? sql`+ least(30, ts_rank(to_tsvector('simple', v.title), to_tsquery('simple', ${query})) * 300)` : sql``}
+      + v.relevance_score DESC
+    LIMIT 8`;
 
   const [forYou, competitors, competitorHits, [deltas], [pulse], [lastScan]] = await Promise.all([
-    // Hits in my niche, or without a channel yet, the best hits of the week
-    nicheQuery
+    // Hits in my niche, or without a classified channel yet, the best hits of the week
+    nicheId
       ? nicheHits()
       : sql`
           SELECT ${VIDEO_COLUMNS}
@@ -90,7 +87,7 @@ export async function home(req, res) {
               query || category != null
                 ? sql`AND (
                     ${query ? sql`to_tsvector('simple', v.title) @@ to_tsquery('simple', ${query})` : sql`FALSE`}
-                    OR ${category != null ? sql`(v.category_id = ${category} ${language ? sql`AND split_part(lower(v.language), '-', 1) = ${language}` : sql``})` : sql`FALSE`}
+                    OR ${category != null ? sql`(v.category_id = ${category} ${language ? sql`AND v.lang = ${language}` : sql``})` : sql`FALSE`}
                   )`
                 : sql``
             }
@@ -168,7 +165,17 @@ export async function home(req, res) {
           bestRecentVideo: bestRecent ? toVideoJson(bestRecent) : null,
         }
       : null,
-    niche: { id: nicheId, label: niche?.id ? niche.label : null, keywords, category, language },
+    niche: {
+      id: nicheId,
+      label: nicheId ? NICHE_BY_ID[nicheId].label : null,
+      subNiche: subNicheId
+        ? { id: subNicheId, label: NICHE_BY_ID[nicheId].subNiches.find((s) => s.id === subNicheId)?.label ?? null }
+        : null,
+      confidence: nicheId ? num(myChannel.niche_confidence) : null,
+      keywords,
+      category,
+      language,
+    },
     forYou: forYou.map(toVideoJson),
     competitors: competitors.map((c) => ({
       id: c.youtube_channel_id,

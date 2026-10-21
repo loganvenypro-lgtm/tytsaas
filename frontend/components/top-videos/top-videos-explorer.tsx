@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Database, Flame, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,72 +16,45 @@ import {
   SessionExpiredState,
   TopicChips,
   fetchJson,
-  type ActiveChip,
-  type Option,
 } from "@/components/explorer/explorer-ui";
+import { localize, useFilterSpec, useUrlFilters } from "@/components/explorer/filter-spec";
+import { SpecFilterSection, topOptions, useSpecChips } from "@/components/explorer/spec-filters";
 import { useI18n } from "@/components/i18n-provider";
-import type { Messages } from "@/lib/i18n";
-import {
-  ALL_VIDEOS_DEFAULTS,
-  DEFAULT_FILTERS,
-  filterOptions,
-  toApiParams,
-  type FilterKey,
-  type Filters,
-} from "./filter-options";
 import { OutlierCard, type OutlierVideo } from "./outlier-card";
-import { OutlierFilters } from "./outlier-filters";
 
 interface ApiResponse {
   items: OutlierVideo[];
   total: number;
   page: number;
   hasMore: boolean;
-  languages: { code: string; count: number }[];
   updatedAt: string | null;
 }
 
 // Results are tagged with the query they answer, so "loading" is derived instead of set in effects.
 type Result = ApiResponse & { key: string };
 
-// Quick topics: each one is just a preset of filters.
-const TOPICS: { key: keyof Messages["topVideos"]["topics"]; filters: Partial<Filters> }[] = [
-  { key: "gaming", filters: { category: "20" } },
-  { key: "documentaries", filters: { q: "documentary" } },
-  { key: "minecraft", filters: { q: "minecraft" } },
-  { key: "trueCrime", filters: { q: "crime" } },
-  { key: "education", filters: { category: "27" } },
-  { key: "scienceTech", filters: { category: "28" } },
-  { key: "comedy", filters: { category: "23" } },
-  { key: "sports", filters: { category: "17" } },
-];
-
-function baselineFor(view: string): Filters {
-  return view === "all" ? { ...DEFAULT_FILTERS, ...ALL_VIDEOS_DEFAULTS, view: "all" } : { ...DEFAULT_FILTERS };
-}
-
-function readFilters(params: URLSearchParams): Filters {
-  const filters = baselineFor(params.get("view") === "all" ? "all" : "outliers");
-  for (const key of Object.keys(DEFAULT_FILTERS) as FilterKey[]) {
-    const value = params.get(key);
-    if (value) filters[key] = value;
-  }
-  return filters;
-}
+// Each tab is a baseline over the backend defaults: "all videos" is the whole database, newest first.
+const VIEW_OVERRIDES: Record<string, Record<string, string>> = {
+  outliers: {},
+  all: { period: "all", sort: "recent", relevant: "false" },
+};
+const UI_PARAMS = ["view"];
 
 export function TopVideosExplorer() {
-  const { t, language: languageName } = useI18n();
+  const { t, locale } = useI18n();
   const tv = t.topVideos;
-  const opts = filterOptions(t);
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const view =searchParams.get("view") === "all" ? "all" : "outliers";
+  const isAllView = view === "all";
+  const hidden = isAllView ? ["relevant"] : [];
 
-  const filters = useMemo(() => readFilters(new URLSearchParams(searchParams.toString())), [searchParams]);
-  const queryKey = toApiParams(filters, 0).toString();
-  const baseline = baselineFor(filters.view);
+  const { spec, error: specError, retry: retrySpec } = useFilterSpec("videos");
+  const filters = useUrlFilters({ spec, overrides: VIEW_OVERRIDES[view], uiParams: UI_PARAMS });
+  const { chips, remove } = useSpecChips(spec, filters, hidden);
+  const queryKey = filters.apiParams(0).toString();
+  const q = filters.value("q");
 
-  const [search, setSearch] = useState(filters.q);
+  const [search, setSearch] = useState(q);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<{ key: string; error: Error } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -89,39 +62,25 @@ export function TopVideosExplorer() {
 
   const loading = result?.key !== queryKey && error?.key !== queryKey;
 
-  // Only values that differ from the tab's defaults go in the URL, so links stay short and shareable.
-  const updateFilters = useCallback(
-    (next: Filters) => {
-      const base = baselineFor(next.view);
-      const params = new URLSearchParams();
-      if (next.view === "all") params.set("view", "all");
-      for (const key of Object.keys(DEFAULT_FILTERS) as FilterKey[]) {
-        if (key !== "view" && next[key] !== base[key]) params.set(key, next[key]);
-      }
-      const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router],
-  );
-
-  const setFilter = (key: FilterKey, value: string) => updateFilters({ ...filters, [key]: value });
-
-  const switchView = (view: string) => {
+  const switchView = (next: string) => {
     setSearch("");
-    updateFilters(baselineFor(view));
+    filters.reset([], { view: next === "all" ? "all" : null });
   };
 
   const resetFilters = () => {
     setSearch("");
-    updateFilters({ ...baseline, sort: filters.sort });
+    filters.reset(["view", "sort"]);
   };
+
+  // A badge on a card narrows the list to its value.
+  const filterOn = (key: string, value: string) => filters.setMany({ [key]: value });
 
   // Debounce the search box into the URL.
   useEffect(() => {
-    if (search === filters.q) return;
-    const timer = setTimeout(() => updateFilters({ ...filters, q: search.trim() }), 350);
+    if (search === q) return;
+    const timer = setTimeout(() => filters.setMany({ q: search.trim() }), 350);
     return () => clearTimeout(timer);
-  }, [search, filters, updateFilters]);
+  }, [search, q, filters]);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,7 +96,7 @@ export function TopVideosExplorer() {
     if (!result) return;
     setLoadingMore(true);
     try {
-      const data = await fetchJson<ApiResponse>(`/api/videos/top?${toApiParams(filters, result.page + 1)}`);
+      const data = await fetchJson<ApiResponse>(`/api/videos/top?${filters.apiParams(result.page + 1)}`);
       setResult((prev) => (prev && prev.key === queryKey ? { ...data, key: queryKey, items: [...prev.items, ...data.items] } : prev));
     } catch (err) {
       setError({ key: queryKey, error: err as Error });
@@ -146,52 +105,18 @@ export function TopVideosExplorer() {
     }
   };
 
-  const languageOptions: Option[] = [
-    { value: "all", label: t.explorer.allLanguages },
-    ...(result?.languages ?? []).map((l) => ({ value: l.code, label: languageName(l.code) })),
-  ];
-  if (filters.language !== "all" && !languageOptions.some((o) => o.value === filters.language)) {
-    languageOptions.push({ value: filters.language, label: languageName(filters.language) });
-  }
-
-  // Removable chips for every filter that differs from the tab's defaults.
-  const labelOf = (options: Option[], value: string) => options.find((o) => o.value === value)?.label ?? value;
-  const chipSources: [FilterKey, Option[]][] = [
-    ["format", opts.format],
-    ["period", opts.period],
-    ["category", opts.category],
-    ["language", languageOptions],
-    ["subs", opts.subs],
-    ["minViews", opts.views],
-    ["minMultiplier", opts.multiplier],
-  ];
-  const chips: ActiveChip[] = [];
-  if (filters.q) chips.push({ key: "q", label: t.common.quoted(filters.q) });
-  for (const [key, options] of chipSources) {
-    if (filters[key] !== baseline[key]) chips.push({ key, label: labelOf(options, filters[key]) });
-  }
-  if (filters.view !== "all" && filters.relevant !== baseline.relevant) {
-    chips.push({ key: "relevant", label: tv.unfilteredChip });
-  }
-
+  const sortOptions = (spec?.sorts ?? []).map((s) => ({ value: s.value, label: localize(s.label, locale) }));
   const items = result?.key === queryKey ? result.items : [];
-  const isAllView = filters.view === "all";
 
   return (
     <div className="flex min-h-full flex-col">
       <div className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-5 px-4 py-6 md:px-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-1">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              {isAllView ? tv.allTitle : tv.title}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {isAllView
-                ? tv.allDescription
-                : tv.description}
-            </p>
+            <h2 className="text-2xl font-semibold tracking-tight">{isAllView ? tv.allTitle : tv.title}</h2>
+            <p className="text-sm text-muted-foreground">{isAllView ? tv.allDescription : tv.description}</p>
           </div>
-          <Tabs value={filters.view} onValueChange={(v) => switchView(String(v))}>
+          <Tabs value={view} onValueChange={(v) => switchView(String(v))}>
             <TabsList>
               <TabsTrigger value="outliers">
                 <Flame className="size-3.5" />
@@ -215,24 +140,27 @@ export function TopVideosExplorer() {
           />
         </div>
 
-        <TopicChips
-          topics={TOPICS.map((topic) => ({
-            label: tv.topics[topic.key],
-            active: Object.entries(topic.filters).every(([k, v]) => filters[k as FilterKey] === v),
-            onPick: () => {
-              setSearch(topic.filters.q ?? "");
-              updateFilters({ ...baseline, sort: filters.sort, ...topic.filters });
-            },
-          }))}
-        />
+        {/* Quick topics: the niches with the most recent videos */}
+        {spec && (
+          <TopicChips
+            topics={topOptions(spec, "niche", 8).map((option) => ({
+              label: localize(option.label, locale),
+              active: filters.value("niche") === String(option.value),
+              onPick: () => {
+                setSearch("");
+                filters.reset(["view", "sort"], { niche: String(option.value) });
+              },
+            }))}
+          />
+        )}
 
-        <OutlierFilters filters={filters} languageOptions={languageOptions} onChange={setFilter} />
+        <SpecFilterSection spec={spec} error={specError} onRetry={retrySpec} filters={filters} hidden={hidden} />
 
         <ActiveFilters
           chips={chips}
           onRemove={(key) => {
             if (key === "q") setSearch("");
-            setFilter(key as FilterKey, baseline[key as FilterKey]);
+            remove(key);
           }}
           onClear={resetFilters}
         />
@@ -243,7 +171,14 @@ export function TopVideosExplorer() {
           noun={tv.noun}
           updatedAt={result?.updatedAt ?? null}
           sort={
-            <FilterSelect value={filters.sort} options={opts.sort} onChange={(v) => setFilter("sort", v)} className="w-auto" />
+            sortOptions.length > 0 && (
+              <FilterSelect
+                value={filters.value("sort")}
+                options={sortOptions}
+                onChange={(v) => filters.setMany({ sort: v })}
+                className="w-auto"
+              />
+            )
           }
         />
 
@@ -278,10 +213,7 @@ export function TopVideosExplorer() {
             ))}
           </Grid>
         ) : items.length === 0 ? (
-          <EmptyState
-            title={tv.emptyTitle}
-            description={tv.emptyDescription}
-          >
+          <EmptyState title={tv.emptyTitle} description={tv.emptyDescription}>
             <Button variant="outline" size="sm" onClick={resetFilters}>
               {t.common.resetFilters}
             </Button>
@@ -290,7 +222,7 @@ export function TopVideosExplorer() {
           <>
             <Grid>
               {items.map((video) => (
-                <OutlierCard key={video.id} video={video} />
+                <OutlierCard key={video.id} video={video} onFilter={filterOn} />
               ))}
             </Grid>
             {result?.hasMore && (

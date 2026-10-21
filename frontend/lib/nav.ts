@@ -44,6 +44,7 @@ export const NAV_SECTIONS: NavSection[] = [
         items: [
           { key: "topVideos", url: "/trending/top-videos" },
           { key: "breakoutCreators", url: "/trending/breakout-creators" },
+          { key: "nicheFinder", url: "/trending/niche-finder" },
         ],
       },
       {

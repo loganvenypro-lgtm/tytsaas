@@ -1,12 +1,15 @@
 "use client";
 
-import { Eye, Flame, MessageCircle, ThumbsUp, Zap } from "lucide-react";
+import { useState } from "react";
+import { Eye, Flame, MessageCircle, SplitSquareHorizontal, ThumbsUp, Zap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useOptionLabels } from "@/components/explorer/filter-spec";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
+import { AbHistorySheet } from "./ab-history-sheet";
 
 export interface OutlierVideo {
   id: string;
@@ -24,6 +27,13 @@ export interface OutlierVideo {
   score: number | null;
   categoryId: number | null;
   language: string | null;
+  // Classification (lib/taxonomy on the backend); labels come from /api/filters/videos
+  niche?: string | null;
+  subNiche?: string | null;
+  style?: string | null;
+  hooks?: string[];
+  /** How many thumbnails / titles the scanner has seen on this video. */
+  abTest?: { thumbnails: number; titles: number };
   channel: {
     id: string;
     name: string;
@@ -41,9 +51,22 @@ function multiplierTone(multiplier: number) {
   return "bg-white/90 text-slate-900";
 }
 
-export function OutlierCard({ video }: { video: OutlierVideo }) {
+export function OutlierCard({
+  video,
+  onFilter,
+}: {
+  video: OutlierVideo;
+  /** When given, classification badges filter the list on their value. */
+  onFilter?: (key: string, value: string) => void;
+}) {
   const { t, compact, date, ago, language: languageName } = useI18n();
+  const labelOf = useOptionLabels("videos");
+  const [abOpen, setAbOpen] = useState(false);
   const url = `https://www.youtube.com/watch?v=${video.id}`;
+  const thumbnails = video.abTest?.thumbnails ?? 1;
+  const titles = video.abTest?.titles ?? 1;
+  const hasAbTest = thumbnails > 1 || titles > 1;
+  const category = labelOf("category", video.categoryId) ?? (video.categoryId != null ? t.categories[video.categoryId] : null);
   const language = video.language?.split("-")[0].toLowerCase();
   const engagement =
     video.views > 0 && video.likes != null ? ((video.likes + (video.comments ?? 0)) / video.views) * 100 : null;
@@ -83,7 +106,25 @@ export function OutlierCard({ video }: { video: OutlierVideo }) {
             </span>
           )}
         </a>
+        {hasAbTest && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={() => setAbOpen(true)}
+                  className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-violet-600 px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-sm hover:bg-violet-700"
+                >
+                  <SplitSquareHorizontal className="size-3" />
+                  {t.topVideos.ab.badge} · {Math.max(thumbnails, titles)}
+                </button>
+              }
+            />
+            <TooltipContent>{t.topVideos.ab.hint(thumbnails, titles)}</TooltipContent>
+          </Tooltip>
+        )}
       </div>
+      {hasAbTest && <AbHistorySheet video={video} open={abOpen} onOpenChange={setAbOpen} />}
 
       <div className="flex flex-1 flex-col gap-3 p-3.5">
         <a
@@ -133,12 +174,28 @@ export function OutlierCard({ video }: { video: OutlierVideo }) {
               <TooltipContent>{t.topVideos.card.scoreHint}</TooltipContent>
             </Tooltip>
           )}
-          {video.categoryId != null && t.categories[video.categoryId] && (
-            <Badge variant="secondary">{t.categories[video.categoryId]}</Badge>
+          {video.niche ? (
+            <FilterBadge filterKey="niche" value={video.niche} label={labelOf("niche", video.niche)} onFilter={onFilter} variant="secondary" />
+          ) : (
+            category && <Badge variant="secondary">{category}</Badge>
+          )}
+          {video.subNiche && (
+            <FilterBadge filterKey="subNiche" value={video.subNiche} label={labelOf("subNiche", video.subNiche)} onFilter={onFilter} />
+          )}
+          {video.style && (
+            <FilterBadge filterKey="style" value={video.style} label={labelOf("style", video.style)} onFilter={onFilter} />
           )}
           {language && <Badge variant="outline">{languageName(language)}</Badge>}
           {video.channel.country && <Badge variant="outline">{video.channel.country}</Badge>}
         </div>
+
+        {video.hooks && video.hooks.length > 0 && (
+          <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+            {video.hooks.map((hook) => (
+              <FilterBadge key={hook} filterKey="hooks" value={hook} label={labelOf("hooks", hook)} onFilter={onFilter} plain />
+            ))}
+          </div>
+        )}
 
         <div className="mt-auto flex items-center justify-between gap-2 border-t pt-2.5 text-xs text-muted-foreground">
           <Tooltip>
@@ -163,6 +220,37 @@ export function OutlierCard({ video }: { video: OutlierVideo }) {
         </div>
       </div>
     </Card>
+  );
+}
+
+/** A classification value (niche, style, hook…), clickable to filter on it when the list allows it. */
+export function FilterBadge({
+  filterKey,
+  value,
+  label,
+  onFilter,
+  variant = "outline",
+  plain = false,
+}: {
+  filterKey: string;
+  value: string;
+  label: string | null;
+  onFilter?: (key: string, value: string) => void;
+  variant?: "outline" | "secondary";
+  plain?: boolean;
+}) {
+  const { t } = useI18n();
+  const text = plain ? `#${label ?? value}` : (label ?? value);
+  if (!onFilter) return plain ? <span>{text}</span> : <Badge variant={variant}>{text}</Badge>;
+  return (
+    <button
+      type="button"
+      title={t.explorer.filterOn(label ?? value)}
+      onClick={() => onFilter(filterKey, value)}
+      className={plain ? "hover:text-foreground hover:underline" : "rounded-md"}
+    >
+      {plain ? text : <Badge variant={variant} className="cursor-pointer hover:border-primary/40">{text}</Badge>}
+    </button>
   );
 }
 
