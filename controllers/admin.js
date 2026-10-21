@@ -1,12 +1,10 @@
 import { sql } from "../lib/sql.js";
 import { parsePage } from "../lib/admin.js";
-import { describe, listJsonFiles, readJsonFile } from "../lib/adminJson.js";
 
 // Never sent to the browser, even to admins
 const HIDDEN_COLUMNS = new Set(["password", "token", "accessToken", "refreshToken", "idToken", "key_hash"]);
 // Newest rows first when the table has one of these
 const SORT_COLUMNS = ["createdAt", "created_at", "captured_at", "added_at", "started_at", "first_seen_at", "detected_at", "rejected_at", "sent_at", "day"];
-const MAX_ENTRY_CHARS = 20_000;
 
 /** Headline counters for the admin home. */
 export async function overview(req, res) {
@@ -261,63 +259,4 @@ export async function tableRows(req, res) {
   const rows = await sql`SELECT ${sql(visible)} FROM ${table} t ${where} ${order} LIMIT ${size} OFFSET ${offset}`;
 
   res.json({ name, columns: shown, total, page, size, rows });
-}
-
-/** The JSON databases in data/. */
-export function jsonFiles(req, res) {
-  res.json({ files: listJsonFiles() });
-}
-
-/**
- * One page of entries of a data/*.json file. `path` (dot separated keys) drills
- * into a nested collection, e.g. intelligence_database.json?path=channels.
- */
-export function jsonFile(req, res) {
-  const { file } = req.params;
-  const { page, size, offset, q } = parsePage(req.query, 25);
-  const keyPath = String(req.query.path ?? "").split(".").filter(Boolean);
-
-  let node;
-  try {
-    node = readJsonFile(file);
-  } catch {
-    return res.status(500).json({ error: "Fichier JSON illisible." });
-  }
-  if (node === null) return res.status(404).json({ error: "Fichier inconnu." });
-
-  for (const key of keyPath) {
-    if (!node || typeof node !== "object" || !(key in node)) {
-      return res.status(404).json({ error: "Chemin introuvable." });
-    }
-    node = node[key];
-  }
-
-  const entries = Array.isArray(node)
-    ? node.map((v, i) => [String(i), v])
-    : node && typeof node === "object"
-      ? Object.entries(node)
-      : [["valeur", node]];
-
-  const needle = q.toLowerCase();
-  const matching = needle
-    ? entries.filter(([k, v]) => k.toLowerCase().includes(needle) || JSON.stringify(v).toLowerCase().includes(needle))
-    : entries;
-
-  res.json({
-    file,
-    path: keyPath,
-    kind: Array.isArray(node) ? "array" : typeof node,
-    total: matching.length,
-    page,
-    size,
-    entries: matching.slice(offset, offset + size).map(([key, value]) => {
-      const json = JSON.stringify(value, null, 2) ?? "null";
-      return {
-        key,
-        summary: describe(value),
-        nested: !!value && typeof value === "object",
-        json: json.length > MAX_ENTRY_CHARS ? json.slice(0, MAX_ENTRY_CHARS) + "\n… (tronqué)" : json,
-      };
-    }),
-  });
 }

@@ -12,15 +12,21 @@ import {
   Sparkles,
 } from "lucide-react"
 
+import type { Messages } from "@/lib/i18n"
+
+// Labels live in the messages (t.nav), so the sidebar follows the interface language
+export type NavItemKey = keyof Messages["nav"]["items"]
+export type NavSectionKey = keyof Messages["nav"]["sections"]
+
 export type NavItem = {
-  title: string
+  key: NavItemKey
   url: string
   icon: React.ComponentType<{ className?: string }>
-  items?: { title: string; url: string }[]
+  items?: { key: NavItemKey; url: string }[]
 }
 
 export type NavSection = {
-  label: string
+  key: NavSectionKey
   items: NavItem[]
 }
 
@@ -28,83 +34,83 @@ export type NavSection = {
 // only used to match the pages under it.
 export const NAV_SECTIONS: NavSection[] = [
   {
-    label: "Discover",
+    key: "discover",
     items: [
-      { title: "Home", url: "/", icon: Home },
+      { key: "home", url: "/", icon: Home },
       {
-        title: "Trending",
+        key: "trending",
         url: "/trending",
         icon: Flame,
         items: [
-          { title: "Top Videos", url: "/trending/top-videos" },
-          { title: "Breakout Creators", url: "/trending/breakout-creators" },
+          { key: "topVideos", url: "/trending/top-videos" },
+          { key: "breakoutCreators", url: "/trending/breakout-creators" },
         ],
       },
       {
-        title: "Search",
+        key: "search",
         url: "/search",
         icon: Search,
         items: [
-          { title: "Keywords", url: "/search/keywords" },
-          { title: "Hashtags", url: "/search/hashtags" },
+          { key: "keywords", url: "/search/keywords" },
+          { key: "hashtags", url: "/search/hashtags" },
         ],
       },
     ],
   },
   {
-    label: "Tracking",
+    key: "tracking",
     items: [
-      { title: "My Folders", url: "/folders", icon: FolderBookmark },
+      { key: "folders", url: "/folders", icon: FolderBookmark },
       {
-        title: "Channels",
+        key: "channels",
         url: "/channels",
         icon: Eye,
         items: [
-          { title: "Competitors", url: "/channels/competitors" },
-          { title: "Inspirations", url: "/channels/inspirations" },
+          { key: "competitors", url: "/channels/competitors" },
+          { key: "inspirations", url: "/channels/inspirations" },
         ],
       },
     ],
   },
   {
-    label: "Creation",
+    key: "creation",
     items: [
-      { title: "Studio", url: "/studio", icon: Clapperboard },
+      { key: "studio", url: "/studio", icon: Clapperboard },
       {
-        title: "AI Tools",
+        key: "aiTools",
         url: "/ai-tools",
         icon: Sparkles,
         items: [
-          { title: "Script Generator", url: "/ai-tools/script-generator" },
-          { title: "Thumbnail Ideas", url: "/ai-tools/thumbnail-ideas" },
+          { key: "scriptGenerator", url: "/ai-tools/script-generator" },
+          { key: "thumbnailIdeas", url: "/ai-tools/thumbnail-ideas" },
         ],
       },
-      { title: "Connect Claude", url: "/connect-claude", icon: Plug },
+      { key: "connectClaude", url: "/connect-claude", icon: Plug },
     ],
   },
 ]
 
 // Pages reached from the user menu rather than the sidebar
 const EXTRA_PAGES: Record<string, Omit<NavItem, "url">> = {
-  "/settings": { title: "Paramètres", icon: Settings },
-  "/admin": { title: "Admin", icon: ShieldCheck },
+  "/settings": { key: "settings", icon: Settings },
+  "/admin": { key: "admin", icon: ShieldCheck },
 }
 
 export function isActive(url: string, pathname: string) {
   return url === "/" ? pathname === "/" : pathname === url || pathname.startsWith(`${url}/`)
 }
 
-export type NavTrail = { icon: NavItem["icon"]; crumbs: string[] }
+export type NavTrail = { icon: NavItem["icon"]; crumbs: NavItemKey[] }
 
-/** Where a page sits in the sidebar ("Trending" › "Top Videos"), or null when it isn't listed. */
+/** Where a page sits in the sidebar (trending › topVideos), or null when it isn't listed. */
 export function navTrail(pathname: string): NavTrail | null {
   const extra = EXTRA_PAGES[pathname]
-  if (extra) return { icon: extra.icon, crumbs: [extra.title] }
+  if (extra) return { icon: extra.icon, crumbs: [extra.key] }
   for (const section of NAV_SECTIONS) {
     for (const item of section.items) {
       const sub = item.items?.find((i) => isActive(i.url, pathname))
-      if (sub) return { icon: item.icon, crumbs: [item.title, sub.title] }
-      if (!item.items && isActive(item.url, pathname)) return { icon: item.icon, crumbs: [item.title] }
+      if (sub) return { icon: item.icon, crumbs: [item.key, sub.key] }
+      if (!item.items && isActive(item.url, pathname)) return { icon: item.icon, crumbs: [item.key] }
     }
   }
   return null

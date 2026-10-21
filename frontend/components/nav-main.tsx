@@ -21,9 +21,11 @@ import {
 } from "@/components/ui/collapsible"
 import { ChevronDownIcon } from "lucide-react"
 
+import { useI18n } from "@/components/i18n-provider"
 import { isActive, type NavSection } from "@/lib/nav"
 
 export function NavMain({ sections }: { sections: NavSection[] }) {
+  const { t } = useI18n()
   const pathname = usePathname()
   // Folders the user opened or closed by hand; the others follow the current page
   const [openFolders, setOpenFolders] = React.useState<Record<string, boolean>>({})
@@ -31,9 +33,9 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
   return (
     <div className="flex flex-col gap-2">
       {sections.map((section) => (
-        <SidebarGroup key={section.label} className="py-1 pl-3 pr-2 group-data-[collapsible=icon]:px-2">
+        <SidebarGroup key={section.key} className="py-1 pl-3 pr-2 group-data-[collapsible=icon]:px-2">
           <SidebarGroupLabel className="text-[11px] font-medium tracking-tight text-muted-foreground/80 px-2.5">
-            {section.label}
+            {t.nav.sections[section.key]}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
@@ -43,7 +45,7 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                 if (item.items && item.items.length > 0) {
                   return (
                     <Collapsible
-                      key={item.title}
+                      key={item.url}
                       open={openFolders[item.url] ?? active}
                       onOpenChange={(open) => setOpenFolders((prev) => ({ ...prev, [item.url]: open }))}
                       className="group/collapsible"
@@ -52,7 +54,7 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                         <CollapsibleTrigger
                           render={
                             <SidebarMenuButton
-                              tooltip={item.title}
+                              tooltip={t.nav.items[item.key]}
                               className={
                                 active
                                   ? "bg-accent font-medium text-accent-foreground"
@@ -62,16 +64,16 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                           }
                         >
                           <Icon className="size-4 shrink-0" />
-                          <span>{item.title}</span>
+                          <span>{t.nav.items[item.key]}</span>
                           <ChevronDownIcon className="ml-auto size-3.5 text-muted-foreground transition-transform duration-200 group-data-[panel-open]/collapsible:rotate-180 group-data-[state=open]/collapsible:rotate-180" />
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <SidebarMenuSub>
                             {item.items.map((subItem) => (
-                              <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubItem key={subItem.url}>
                                 <SidebarMenuSubButton asChild isActive={isActive(subItem.url, pathname)}>
                                   <Link href={subItem.url}>
-                                    <span>{subItem.title}</span>
+                                    <span>{t.nav.items[subItem.key]}</span>
                                   </Link>
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>
@@ -84,10 +86,10 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                 }
 
                 return (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       asChild
-                      tooltip={item.title}
+                      tooltip={t.nav.items[item.key]}
                       isActive={active}
                       className={
                         active
@@ -97,7 +99,7 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                     >
                       <Link href={item.url}>
                         <Icon className="size-4 shrink-0" />
-                        <span>{item.title}</span>
+                        <span>{t.nav.items[item.key]}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

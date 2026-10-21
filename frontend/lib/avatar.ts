@@ -4,16 +4,16 @@
 const DICEBEAR_BASE = "https://api.dicebear.com/9.x"
 const BACKGROUNDS = ["b6e3f4", "c0aede", "d1d4f9", "ffd5dc", "ffdfbf", "d1f4e0"]
 
-// Styles offered in Paramètres > Profil
+// Styles offered in Settings > Profile (labels in t.settings.avatarStyles)
 export const AVATAR_STYLES = [
-  { id: "notionists", label: "Notion" },
-  { id: "avataaars", label: "Cartoon" },
-  { id: "lorelei", label: "Lorelei" },
-  { id: "micah", label: "Micah" },
-  { id: "adventurer", label: "Aventurier" },
-  { id: "personas", label: "Personas" },
-  { id: "fun-emoji", label: "Emoji" },
-  { id: "bottts", label: "Robot" },
+  { id: "notionists" },
+  { id: "avataaars" },
+  { id: "lorelei" },
+  { id: "micah" },
+  { id: "adventurer" },
+  { id: "personas" },
+  { id: "fun-emoji" },
+  { id: "bottts" },
 ] as const
 
 export type AvatarStyle = (typeof AVATAR_STYLES)[number]["id"]

@@ -1,5 +1,6 @@
 import { sql } from "../lib/sql.js";
 import { classifyChannel, titleMatchesNiche } from "../lib/nicheClassifier.js";
+import { mode, topKeywords } from "../lib/titleKeywords.js";
 import { toNumber } from "./videos.js";
 
 const PAGE_SIZE = 18;
@@ -183,13 +184,6 @@ export async function breakout(req, res) {
   });
 }
 
-const STOPWORDS = new Set(
-  `the a an and or of to in on for with is are was be this that it my your you i me we they he she his her at by from as
-  how what why who when where vs not no do does did can will just new video videos official full part shorts short
-  youtube channel day days year years first best top get got make made one two all out up into about over more most so
-  if but its le la les de des du un une et en est pour pas qui que sur avec dans ce mon ma il elle on je tu nous vous`.split(/\s+/),
-);
-
 /**
  * Channels similar to this one, from the database: the most frequent words in its
  * recent titles become a full-text query, matching channels are ranked by how many
@@ -208,28 +202,9 @@ export async function similar(req, res) {
     ORDER BY published_at DESC
     LIMIT 40`;
 
-  const counts = new Map();
-  for (const { title } of titles) {
-    const words = new Set(
-      title
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N} ]+/gu, " ")
-        .split(/\s+/)
-        .filter((w) => w.length > 2 && !STOPWORDS.has(w) && !/^\d+$/.test(w)),
-    );
-    for (const w of words) counts.set(w, (counts.get(w) ?? 0) + 1);
-  }
-  const keywords = [...counts]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 12)
-    .map(([w]) => w);
+  const keywords = topKeywords(titles.map((t) => t.title), 12);
   if (keywords.length === 0) return res.json({ keywords: [], items: [] });
 
-  const mode = (values) => {
-    const freq = new Map();
-    for (const v of values) if (v != null) freq.set(v, (freq.get(v) ?? 0) + 1);
-    return [...freq].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-  };
   const category = mode(titles.map((t) => t.category_id));
   const language = mode(titles.map((t) => t.language));
   const query = keywords.join(" | ");

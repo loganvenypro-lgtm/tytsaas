@@ -5,6 +5,7 @@ import Link from "next/link"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { useI18n } from "@/components/i18n-provider"
 import { NAV_SECTIONS } from "@/lib/nav"
 import type { SessionUser } from "@/lib/session"
 import {
@@ -22,6 +23,7 @@ export function AppSidebar({
   user,
   ...props
 }: React.ComponentProps<typeof Sidebar> & { user: SessionUser }) {
+  const { t } = useI18n()
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader className="h-(--header-height) justify-center px-4 group-data-[collapsible=icon]:px-2">
@@ -32,7 +34,7 @@ export function AppSidebar({
               render={<Link href="/" />}
             >
               <Command className="size-5!" />
-              <span className="text-base font-semibold">Acme Inc.</span>
+              <span className="text-base font-semibold">{t.brand}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -14,6 +14,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useI18n } from "@/components/i18n-provider"
 import { toast } from "@/components/ui/toast"
 import { signIn } from "@/lib/auth-client"
 import { GalleryVerticalEndIcon } from "lucide-react"
@@ -22,6 +23,7 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const { t } = useI18n()
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -38,11 +40,11 @@ export function LoginForm({
     })
 
     if (error) {
-      setError(error.message ?? "Could not sign in")
+      setError((error.code && t.auth.errors[error.code]) || error.message || t.auth.login.failed)
       setPending(false)
       return
     }
-    toast.add({ type: "success", title: "Content de te revoir" })
+    toast.add({ type: "success", title: t.auth.login.welcomeBack })
     router.push("/")
     router.refresh()
   }
@@ -59,26 +61,26 @@ export function LoginForm({
               <div className="flex size-8 items-center justify-center rounded-md">
                 <GalleryVerticalEndIcon className="size-6" />
               </div>
-              <span className="sr-only">Acme Inc.</span>
+              <span className="sr-only">{t.brand}</span>
             </Link>
-            <h1 className="text-xl font-bold">Welcome to Acme Inc.</h1>
+            <h1 className="text-xl font-bold">{t.auth.welcome(t.brand)}</h1>
             <FieldDescription>
-              Don&apos;t have an account? <Link href="/signup">Sign up</Link>
+              {t.auth.login.noAccount} <Link href="/signup">{t.auth.login.signUp}</Link>
             </FieldDescription>
           </div>
           <Field>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <FieldLabel htmlFor="email">{t.auth.email}</FieldLabel>
             <Input
               id="email"
               name="email"
               type="email"
               autoComplete="email"
-              placeholder="m@example.com"
+              placeholder={t.auth.emailPlaceholder}
               required
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <FieldLabel htmlFor="password">{t.auth.password}</FieldLabel>
             <Input
               id="password"
               name="password"
@@ -90,14 +92,17 @@ export function LoginForm({
           {error && <FieldError>{error}</FieldError>}
           <Field>
             <Button type="submit" disabled={pending}>
-              {pending ? "Logging in..." : "Login"}
+              {pending ? t.auth.login.pending : t.auth.login.submit}
             </Button>
           </Field>
         </FieldGroup>
       </form>
       <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+        {t.auth.termsBefore}
+        <a href="#">{t.auth.terms}</a>
+        {t.auth.termsAnd}
+        <a href="#">{t.auth.privacy}</a>
+        {t.auth.termsAfter}
       </FieldDescription>
     </div>
   )

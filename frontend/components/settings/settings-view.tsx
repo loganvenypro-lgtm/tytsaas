@@ -6,6 +6,7 @@ import { useTheme } from "next-themes"
 import {
   CheckCircle2,
   Dices,
+  Languages,
   Laptop,
   Loader2,
   Lock,
@@ -13,7 +14,6 @@ import {
   Mail,
   Monitor,
   Moon,
-  Palette,
   RotateCcw,
   Smartphone,
   Sun,
@@ -28,12 +28,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useI18n } from "@/components/i18n-provider"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/toast"
 import { authClient, signOut } from "@/lib/auth-client"
+import { LOCALES, LOCALE_NAMES, saveLocale, type Locale, type Messages } from "@/lib/i18n"
 import { AVATAR_STYLES, getDicebearAvatar, parseAvatar, randomSeed, resolveAvatar, type AvatarStyle } from "@/lib/avatar"
 import type { SessionUser } from "@/lib/session"
 
@@ -56,20 +58,12 @@ function StatusMessage({ status }: { status: Status }) {
   )
 }
 
-function fmtDate(value: string | Date | undefined, withTime = false) {
-  if (!value) return "—"
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
-  }).format(new Date(value))
-}
-
 /* ------------------------------------------------------------------ profil */
 
 function ProfileTab({ user }: { user: SessionUser }) {
   const router = useRouter()
+  const { t } = useI18n()
+  const tp = t.settings.profile
   const initial = React.useMemo(() => parseAvatar(resolveAvatar(user), user.email), [user])
   const [name, setName] = React.useState(user.name)
   const [style, setStyle] = React.useState<AvatarStyle>(initial.style)
@@ -83,7 +77,7 @@ function ProfileTab({ user }: { user: SessionUser }) {
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault()
     if (!name.trim()) {
-      setStatus({ type: "error", message: "Le nom ne peut pas être vide." })
+      setStatus({ type: "error", message: tp.nameRequired })
       return
     }
     setSaving(true)
@@ -91,10 +85,10 @@ function ProfileTab({ user }: { user: SessionUser }) {
     const { error } = await authClient.updateUser({ name: name.trim(), image: preview })
     setSaving(false)
     if (error) {
-      setStatus({ type: "error", message: error.message ?? "Impossible d'enregistrer le profil." })
+      setStatus({ type: "error", message: error.message ?? tp.saveFailed })
       return
     }
-    toast.add({ type: "success", title: "Profil mis à jour" })
+    toast.add({ type: "success", title: tp.saved })
     // Re-renders the server components, so the sidebar shows the new name and picture
     router.refresh()
   }
@@ -110,13 +104,13 @@ function ProfileTab({ user }: { user: SessionUser }) {
     <form onSubmit={onSubmit}>
       <Card>
         <CardHeader>
-          <CardTitle>Photo de profil</CardTitle>
-          <CardDescription>Choisis un style d&apos;avatar, puis relance le tirage jusqu&apos;à trouver celui qui te plaît.</CardDescription>
+          <CardTitle>{tp.pictureTitle}</CardTitle>
+          <CardDescription>{tp.pictureDescription}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-5 sm:flex-row">
             <Avatar className="size-24 ring-4 ring-muted">
-              <AvatarImage src={preview} alt="Aperçu de l'avatar" />
+              <AvatarImage src={preview} alt={tp.preview} />
               <AvatarFallback className="text-2xl">{name.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col items-center gap-2 sm:items-start">
@@ -124,28 +118,29 @@ function ProfileTab({ user }: { user: SessionUser }) {
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" size="lg" onClick={() => setSeed(randomSeed())}>
                   <Dices />
-                  Nouveau tirage
+                  {tp.reroll}
                 </Button>
                 <Button type="button" variant="ghost" size="lg" onClick={() => setSeed(user.email)}>
                   <RotateCcw />
-                  Avatar par défaut
+                  {tp.defaultAvatar}
                 </Button>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label>Style</Label>
+            <Label>{tp.style}</Label>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
               {AVATAR_STYLES.map((s) => {
                 const selected = s.id === style
+                const label = t.settings.avatarStyles[s.id]
                 return (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => setStyle(s.id)}
                     aria-pressed={selected}
-                    aria-label={`Style ${s.label}`}
+                    aria-label={tp.styleLabel(label)}
                     className={cn(
                       "flex flex-col items-center gap-1.5 rounded-xl border p-2 transition-all",
                       selected ? "border-primary ring-3 ring-primary/15" : "hover:bg-muted"
@@ -154,7 +149,7 @@ function ProfileTab({ user }: { user: SessionUser }) {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={getDicebearAvatar(seed, s.id)} alt="" className="size-11 rounded-full" loading="lazy" />
                     <span className={cn("text-[11px] font-medium", selected ? "text-foreground" : "text-muted-foreground")}>
-                      {s.label}
+                      {label}
                     </span>
                   </button>
                 )
@@ -164,17 +159,17 @@ function ProfileTab({ user }: { user: SessionUser }) {
 
           <div className="grid gap-4 border-t pt-6 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Nom affiché</Label>
+              <Label htmlFor="name">{tp.name}</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} />
-              <p className="text-xs text-muted-foreground">Visible dans la barre latérale.</p>
+              <p className="text-xs text-muted-foreground">{tp.nameHint}</p>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{tp.email}</Label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input id="email" value={user.email} disabled className="pl-8" />
               </div>
-              <p className="text-xs text-muted-foreground">L&apos;email sert d&apos;identifiant et ne peut pas être modifié.</p>
+              <p className="text-xs text-muted-foreground">{tp.emailHint}</p>
             </div>
           </div>
         </CardContent>
@@ -182,11 +177,11 @@ function ProfileTab({ user }: { user: SessionUser }) {
           <StatusMessage status={status} />
           <div className="ml-auto flex gap-2">
             <Button type="button" variant="ghost" size="lg" disabled={!dirty || saving} onClick={reset}>
-              Annuler
+              {t.common.cancel}
             </Button>
             <Button type="submit" size="lg" disabled={!dirty || saving}>
               {saving && <Loader2 className="animate-spin" />}
-              Enregistrer
+              {t.common.save}
             </Button>
           </div>
         </CardFooter>
@@ -198,6 +193,8 @@ function ProfileTab({ user }: { user: SessionUser }) {
 /* ------------------------------------------------------------------ sécurité */
 
 function PasswordCard() {
+  const { t } = useI18n()
+  const tp = t.settings.password
   const [current, setCurrent] = React.useState("")
   const [next, setNext] = React.useState("")
   const [confirm, setConfirm] = React.useState("")
@@ -209,11 +206,11 @@ function PasswordCard() {
     event.preventDefault()
     setStatus(null)
     if (next.length < 8) {
-      setStatus({ type: "error", message: "Le nouveau mot de passe doit contenir au moins 8 caractères." })
+      setStatus({ type: "error", message: tp.tooShort })
       return
     }
     if (next !== confirm) {
-      setStatus({ type: "error", message: "Les deux mots de passe ne correspondent pas." })
+      setStatus({ type: "error", message: tp.mismatch })
       return
     }
     setSaving(true)
@@ -226,7 +223,7 @@ function PasswordCard() {
     if (error) {
       setStatus({
         type: "error",
-        message: error.code === "INVALID_PASSWORD" ? "Mot de passe actuel incorrect." : (error.message ?? "Impossible de changer le mot de passe."),
+        message: (error.code && t.auth.errors[error.code]) || error.message || tp.failed,
       })
       return
     }
@@ -235,8 +232,8 @@ function PasswordCard() {
     setConfirm("")
     toast.add({
       type: "success",
-      title: "Mot de passe modifié",
-      description: revokeOthers ? "Tes autres appareils ont été déconnectés." : undefined,
+      title: tp.changed,
+      description: revokeOthers ? tp.othersRevoked : undefined,
     })
   }
 
@@ -244,32 +241,32 @@ function PasswordCard() {
     <form onSubmit={onSubmit}>
       <Card>
         <CardHeader>
-          <CardTitle>Mot de passe</CardTitle>
-          <CardDescription>Utilise au moins 8 caractères. Tu restes connecté sur cet appareil.</CardDescription>
+          <CardTitle>{tp.title}</CardTitle>
+          <CardDescription>{tp.description}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:max-w-md">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="current-password">Mot de passe actuel</Label>
+            <Label htmlFor="current-password">{tp.current}</Label>
             <Input id="current-password" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="new-password">Nouveau mot de passe</Label>
+            <Label htmlFor="new-password">{tp.new}</Label>
             <Input id="new-password" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="confirm-password">Confirmer le nouveau mot de passe</Label>
+            <Label htmlFor="confirm-password">{tp.confirm}</Label>
             <Input id="confirm-password" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
           </div>
           <Label className="flex items-center gap-2 font-normal">
             <Checkbox checked={revokeOthers} onCheckedChange={(checked) => setRevokeOthers(checked === true)} />
-            Déconnecter mes autres appareils
+            {tp.revokeOthers}
           </Label>
         </CardContent>
         <CardFooter className="justify-between gap-3 border-t">
           <StatusMessage status={status} />
           <Button type="submit" size="lg" className="ml-auto" disabled={saving || !current || !next || !confirm}>
             {saving && <Loader2 className="animate-spin" />}
-            Changer le mot de passe
+            {tp.submit}
           </Button>
         </CardFooter>
       </Card>
@@ -286,16 +283,18 @@ type DeviceSession = {
   userAgent?: string | null
 }
 
-function describeDevice(userAgent?: string | null) {
+function describeDevice(userAgent: string | null | undefined, ts: Messages["settings"]["sessions"]) {
   const ua = userAgent ?? ""
   const browser = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : null
   const os = /Windows/.test(ua) ? "Windows" : /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS X/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : null
   const mobile = /Mobile|iPhone|Android/.test(ua)
-  const label = browser && os ? `${browser} sur ${os}` : browser || os || "Appareil inconnu"
+  const label = browser && os ? ts.browserOn(browser, os) : browser || os || ts.unknownDevice
   return { label, mobile }
 }
 
 function SessionsCard({ currentSessionId }: { currentSessionId: string }) {
+  const { t, date } = useI18n()
+  const ts = t.settings.sessions
   const [sessions, setSessions] = React.useState<DeviceSession[] | null>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [busy, setBusy] = React.useState<string | null>(null)
@@ -306,28 +305,28 @@ function SessionsCard({ currentSessionId }: { currentSessionId: string }) {
     let cancelled = false
     authClient.listSessions().then(({ data, error }) => {
       if (cancelled) return
-      if (error) setError(error.message ?? "Impossible de charger les sessions.")
+      if (error) setError(error.message ?? ts.loadFailed)
       else setSessions([...data].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt)))
       setBusy(null)
     })
     return () => {
       cancelled = true
     }
-  }, [version])
+  }, [version, ts.loadFailed])
 
   async function revoke(session: DeviceSession) {
     setBusy(session.id)
     const { error } = await authClient.revokeSession({ token: session.token })
-    if (error) toast.add({ type: "error", title: "Impossible de déconnecter cet appareil", description: error.message })
-    else toast.add({ type: "success", title: "Appareil déconnecté", description: describeDevice(session.userAgent).label })
+    if (error) toast.add({ type: "error", title: ts.revokeFailed, description: error.message })
+    else toast.add({ type: "success", title: ts.revoked, description: describeDevice(session.userAgent, ts).label })
     setVersion((v) => v + 1)
   }
 
   async function revokeOthers() {
     setBusy("others")
     const { error } = await authClient.revokeOtherSessions()
-    if (error) toast.add({ type: "error", title: "Impossible de déconnecter les autres appareils", description: error.message })
-    else toast.add({ type: "success", title: "Autres appareils déconnectés" })
+    if (error) toast.add({ type: "error", title: ts.revokeOthersFailed, description: error.message })
+    else toast.add({ type: "success", title: ts.othersRevoked })
     setVersion((v) => v + 1)
   }
 
@@ -336,8 +335,8 @@ function SessionsCard({ currentSessionId }: { currentSessionId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sessions actives</CardTitle>
-        <CardDescription>Les appareils connectés à ton compte. Déconnecte ceux que tu ne reconnais pas.</CardDescription>
+        <CardTitle>{ts.title}</CardTitle>
+        <CardDescription>{ts.description}</CardDescription>
       </CardHeader>
       <CardContent>
         {error ? (
@@ -350,7 +349,7 @@ function SessionsCard({ currentSessionId }: { currentSessionId: string }) {
         ) : (
           <div className="flex flex-col divide-y">
             {sessions.map((s) => {
-              const device = describeDevice(s.userAgent)
+              const device = describeDevice(s.userAgent, ts)
               const Icon = device.mobile ? Smartphone : Laptop
               const current = s.id === currentSessionId
               return (
@@ -361,16 +360,17 @@ function SessionsCard({ currentSessionId }: { currentSessionId: string }) {
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 text-sm font-medium">
                       {device.label}
-                      {current && <Badge variant="secondary">Cet appareil</Badge>}
+                      {current && <Badge variant="secondary">{ts.thisDevice}</Badge>}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {s.ipAddress || "IP inconnue"} · actif le {fmtDate(s.updatedAt, true)}
+                      {s.ipAddress || ts.unknownIp} ·{" "}
+                      {ts.activeOn(date(s.updatedAt, { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }))}
                     </p>
                   </div>
                   {!current && (
                     <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => revoke(s)}>
                       {busy === s.id && <Loader2 className="animate-spin" />}
-                      Déconnecter
+                      {ts.revoke}
                     </Button>
                   )}
                 </div>
@@ -383,7 +383,7 @@ function SessionsCard({ currentSessionId }: { currentSessionId: string }) {
         <CardFooter className="justify-end border-t">
           <Button variant="outline" size="lg" disabled={busy !== null} onClick={revokeOthers}>
             {busy === "others" && <Loader2 className="animate-spin" />}
-            Déconnecter tous les autres appareils
+            {ts.revokeOthers}
           </Button>
         </CardFooter>
       )}
@@ -391,15 +391,19 @@ function SessionsCard({ currentSessionId }: { currentSessionId: string }) {
   )
 }
 
-/* ------------------------------------------------------------------ apparence */
+/* ------------------------------------------------------------------ préférences */
 
 const THEMES = [
-  { id: "light", label: "Clair", icon: Sun },
-  { id: "dark", label: "Sombre", icon: Moon },
-  { id: "system", label: "Système", icon: Monitor },
+  { id: "light", icon: Sun },
+  { id: "dark", icon: Moon },
+  { id: "system", icon: Monitor },
 ] as const
 
-function AppearanceTab() {
+// Two-letter badge shown on each language tile
+const LOCALE_BADGES: Record<Locale, string> = { fr: "FR", en: "EN" }
+
+function ThemeCard() {
+  const { t } = useI18n()
   const { theme, setTheme } = useTheme()
   // The theme is only known in the browser; avoid a mismatch with the server render
   const mounted = React.useSyncExternalStore(
@@ -411,26 +415,26 @@ function AppearanceTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Thème</CardTitle>
-        <CardDescription>Choisis l&apos;apparence de l&apos;app. Le choix est gardé sur cet appareil.</CardDescription>
+        <CardTitle>{t.settings.theme.title}</CardTitle>
+        <CardDescription>{t.settings.theme.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-2 sm:max-w-md sm:grid-cols-3">
-          {THEMES.map((t) => {
-            const selected = mounted && theme === t.id
+          {THEMES.map((option) => {
+            const selected = mounted && theme === option.id
             return (
               <button
-                key={t.id}
+                key={option.id}
                 type="button"
-                onClick={() => setTheme(t.id)}
+                onClick={() => setTheme(option.id)}
                 aria-pressed={selected}
                 className={cn(
                   "flex flex-col items-center gap-2 rounded-xl border p-4 text-sm transition-all",
                   selected ? "border-primary ring-3 ring-primary/15" : "hover:bg-muted"
                 )}
               >
-                <t.icon className="size-5" />
-                {t.label}
+                <option.icon className="size-5" />
+                {t.settings.theme[option.id]}
               </button>
             )
           })}
@@ -440,31 +444,97 @@ function AppearanceTab() {
   )
 }
 
+function LanguageCard() {
+  const router = useRouter()
+  const { locale, t } = useI18n()
+  const [pending, startTransition] = React.useTransition()
+  const [picked, setPicked] = React.useState<Locale>(locale)
+
+  function pick(next: Locale) {
+    if (next === locale) return
+    setPicked(next)
+    saveLocale(next)
+    // Re-renders the server components (root layout included) with the new cookie
+    startTransition(() => router.refresh())
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t.settings.language.title}</CardTitle>
+        <CardDescription>{t.settings.language.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-2 sm:max-w-md sm:grid-cols-2">
+          {LOCALES.map((l) => {
+            const selected = l === locale
+            return (
+              <button
+                key={l}
+                type="button"
+                lang={l}
+                onClick={() => pick(l)}
+                disabled={pending}
+                aria-pressed={selected}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition-all disabled:opacity-60",
+                  selected ? "border-primary ring-3 ring-primary/15" : "hover:bg-muted"
+                )}
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                  {LOCALE_BADGES[l]}
+                </span>
+                <span className="flex-1 font-medium">{LOCALE_NAMES[l]}</span>
+                {pending && l === picked ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  selected && !pending && <CheckCircle2 className="size-4 text-primary" />
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function PreferencesTab() {
+  return (
+    <div className="flex flex-col gap-4">
+      <LanguageCard />
+      <ThemeCard />
+    </div>
+  )
+}
+
 /* ------------------------------------------------------------------ compte */
 
 function AccountTab({ user }: { user: SessionUser }) {
   const router = useRouter()
+  const { t, date } = useI18n()
+  const ta = t.settings.account
 
   async function logout() {
     await signOut()
-    toast.add({ type: "success", title: "Tu es déconnecté" })
+    toast.add({ type: "success", title: t.userMenu.loggedOut })
     router.push("/login")
     router.refresh()
   }
 
   const rows = [
-    { label: "Abonnement", value: <Badge>{user.plan || "Pro"}</Badge> },
-    { label: "Rôle", value: user.role === "admin" ? <Badge variant="secondary">admin</Badge> : "Utilisateur" },
-    { label: "Email", value: user.email },
-    { label: "Membre depuis", value: fmtDate(user.createdAt) },
+    { label: ta.plan, value: <Badge>{user.plan || "Pro"}</Badge> },
+    { label: ta.role, value: user.role === "admin" ? <Badge variant="secondary">admin</Badge> : ta.user },
+    { label: ta.email, value: user.email },
+    { label: ta.memberSince, value: user.createdAt ? date(user.createdAt, { day: "numeric", month: "long", year: "numeric" }) : "—" },
   ]
 
   return (
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Ton compte</CardTitle>
-          <CardDescription>Les informations liées à ton abonnement.</CardDescription>
+          <CardTitle>{ta.title}</CardTitle>
+          <CardDescription>{ta.description}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col divide-y">
           {rows.map((row) => (
@@ -479,12 +549,12 @@ function AccountTab({ user }: { user: SessionUser }) {
       <Card>
         <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-medium">Se déconnecter</p>
-            <p className="text-sm text-muted-foreground">Ferme ta session sur cet appareil.</p>
+            <p className="text-sm font-medium">{ta.logoutTitle}</p>
+            <p className="text-sm text-muted-foreground">{ta.logoutDescription}</p>
           </div>
           <Button variant="destructive" size="lg" onClick={logout}>
             <LogOut />
-            Déconnexion
+            {ta.logout}
           </Button>
         </CardContent>
       </Card>
@@ -494,7 +564,7 @@ function AccountTab({ user }: { user: SessionUser }) {
 
 /* ------------------------------------------------------------------ page */
 
-const TABS = ["profile", "security", "appearance", "account"]
+const TABS = ["profile", "security", "preferences", "account"]
 
 export function SettingsView({
   user,
@@ -505,29 +575,33 @@ export function SettingsView({
   currentSessionId: string
   initialTab: string
 }) {
+  const { t } = useI18n()
+  // "appearance" was the tab's name before the language picker joined it; old links still land here
+  const tab = initialTab === "appearance" ? "preferences" : initialTab
+
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 md:px-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-semibold tracking-tight">Paramètres</h2>
-        <p className="text-sm text-muted-foreground">Gère ton profil, ta sécurité et ton compte.</p>
+        <h2 className="text-2xl font-semibold tracking-tight">{t.settings.title}</h2>
+        <p className="text-sm text-muted-foreground">{t.settings.description}</p>
       </div>
-      <Tabs defaultValue={TABS.includes(initialTab) ? initialTab : "profile"} className="gap-5">
+      <Tabs defaultValue={TABS.includes(tab) ? tab : "profile"} className="gap-5">
         <TabsList className="w-full flex-wrap justify-start p-1 group-data-horizontal/tabs:h-auto sm:w-fit">
           <TabsTrigger value="profile" className="flex-none px-3">
             <User />
-            Profil
+            {t.settings.tabs.profile}
           </TabsTrigger>
           <TabsTrigger value="security" className="flex-none px-3">
             <Lock />
-            Sécurité
+            {t.settings.tabs.security}
           </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex-none px-3">
-            <Palette />
-            Apparence
+          <TabsTrigger value="preferences" className="flex-none px-3">
+            <Languages />
+            {t.settings.tabs.preferences}
           </TabsTrigger>
           <TabsTrigger value="account" className="flex-none px-3">
             <UserCog />
-            Compte
+            {t.settings.tabs.account}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
@@ -537,8 +611,8 @@ export function SettingsView({
           <PasswordCard />
           <SessionsCard currentSessionId={currentSessionId} />
         </TabsContent>
-        <TabsContent value="appearance">
-          <AppearanceTab />
+        <TabsContent value="preferences">
+          <PreferencesTab />
         </TabsContent>
         <TabsContent value="account">
           <AccountTab user={user} />

@@ -8,7 +8,8 @@
     "start": "node --env-file=.env server.js",
     "dev": "node --watch --env-file=.env server.js",
     "db:migrate": "node --env-file=.env scripts/migrate.js",
-    "import:outlr": "node --env-file=.env scripts/import-outlr.js"
+    "import:outlr": "node --env-file=.env scripts/import-outlr.js",
+    "import:outlr-json": "node --env-file=.env scripts/import-outlr-json.js"
   },
   "keywords": [],
   "author": "",

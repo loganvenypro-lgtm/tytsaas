@@ -5,8 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn, formatCompactNumber } from "@/lib/utils";
-import { CATEGORY_LABELS, LANGUAGE_LABELS } from "./filter-options";
+import { useI18n } from "@/components/i18n-provider";
+import { cn } from "@/lib/utils";
 
 export interface OutlierVideo {
   id: string;
@@ -34,14 +34,6 @@ export interface OutlierVideo {
   };
 }
 
-function timeAgo(iso: string): string {
-  const hours = (Date.now() - new Date(iso).getTime()) / 3_600_000;
-  if (hours < 1) return "il y a moins d'1 h";
-  if (hours < 24) return `il y a ${Math.round(hours)} h`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return `il y a ${days} j`;
-  return `il y a ${Math.round(days / 30)} mois`;
-}
 
 function multiplierTone(multiplier: number) {
   if (multiplier >= 10) return "bg-emerald-600 text-white";
@@ -50,11 +42,12 @@ function multiplierTone(multiplier: number) {
 }
 
 export function OutlierCard({ video }: { video: OutlierVideo }) {
+  const { t, compact, date, ago, language: languageName } = useI18n();
   const url = `https://www.youtube.com/watch?v=${video.id}`;
   const language = video.language?.split("-")[0].toLowerCase();
   const engagement =
     video.views > 0 && video.likes != null ? ((video.likes + (video.comments ?? 0)) / video.views) * 100 : null;
-  const publishedLabel = new Date(video.publishedAt).toLocaleString("fr-FR", {
+  const publishedLabel = date(video.publishedAt, {
     dateStyle: "medium",
     timeStyle: "short",
   });
@@ -82,7 +75,7 @@ export function OutlierCard({ video }: { video: OutlierVideo }) {
             </span>
           )}
           <span className="absolute top-2 right-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[11px] font-medium text-white">
-            {video.isShort ? "Short" : "Vidéo longue"}
+            {video.isShort ? t.common.short : t.common.longVideo}
           </span>
           {video.duration && (
             <span className="absolute right-2 bottom-2 rounded bg-black/80 px-1 py-0.5 text-[11px] font-medium text-white tabular-nums">
@@ -115,21 +108,21 @@ export function OutlierCard({ video }: { video: OutlierVideo }) {
           </Avatar>
           <span className="truncate text-xs font-medium text-foreground">{video.channel.name}</span>
           <span className="shrink-0 text-xs text-muted-foreground">
-            · {video.channel.subscribers != null ? `${formatCompactNumber(video.channel.subscribers)} abonnés` : "abonnés masqués"}
+            · {video.channel.subscribers != null ? t.common.subscribers(compact(video.channel.subscribers)) : t.common.hiddenSubscribers}
           </span>
         </a>
 
         <div className="grid grid-cols-3 divide-x divide-border/70 rounded-lg bg-muted py-2 text-center">
-          <Stat icon={<Eye className="size-3" />} label="Vues" value={formatCompactNumber(video.views)} />
+          <Stat icon={<Eye className="size-3" />} label={t.topVideos.card.views} value={compact(video.views)} />
           <Stat
             icon={<Zap className="size-3" />}
-            label="Vues/h"
-            value={video.viewsPerHour != null ? formatCompactNumber(video.viewsPerHour) : "—"}
+            label={t.topVideos.card.velocity}
+            value={video.viewsPerHour != null ? compact(video.viewsPerHour) : "—"}
           />
           <Stat
             icon={<Flame className="size-3" />}
-            label="Normale"
-            value={video.usualViews != null ? formatCompactNumber(video.usualViews) : "—"}
+            label={t.topVideos.card.usual}
+            value={video.usualViews != null ? compact(video.usualViews) : "—"}
           />
         </div>
 
@@ -137,35 +130,35 @@ export function OutlierCard({ video }: { video: OutlierVideo }) {
           {video.score != null && (
             <Tooltip>
               <TooltipTrigger render={<Badge>{Math.round(video.score)}/100</Badge>} />
-              <TooltipContent>Score de pertinence : multiplicateur, vues, ratio vues/abonnés et fraîcheur</TooltipContent>
+              <TooltipContent>{t.topVideos.card.scoreHint}</TooltipContent>
             </Tooltip>
           )}
-          {video.categoryId != null && CATEGORY_LABELS[video.categoryId] && (
-            <Badge variant="secondary">{CATEGORY_LABELS[video.categoryId]}</Badge>
+          {video.categoryId != null && t.categories[video.categoryId] && (
+            <Badge variant="secondary">{t.categories[video.categoryId]}</Badge>
           )}
-          {language && <Badge variant="outline">{LANGUAGE_LABELS[language] ?? language.toUpperCase()}</Badge>}
+          {language && <Badge variant="outline">{languageName(language)}</Badge>}
           {video.channel.country && <Badge variant="outline">{video.channel.country}</Badge>}
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-2 border-t pt-2.5 text-xs text-muted-foreground">
           <Tooltip>
-            <TooltipTrigger render={<span>{timeAgo(video.publishedAt)}</span>} />
-            <TooltipContent>Publiée le {publishedLabel}</TooltipContent>
+            <TooltipTrigger render={<span>{ago(video.publishedAt, "hour")}</span>} />
+            <TooltipContent>{t.time.publishedOn(publishedLabel)}</TooltipContent>
           </Tooltip>
           <span className="flex items-center gap-2.5 tabular-nums">
             {video.likes != null && (
               <span className="flex items-center gap-1">
                 <ThumbsUp className="size-3" />
-                {formatCompactNumber(video.likes)}
+                {compact(video.likes)}
               </span>
             )}
             {video.comments != null && (
               <span className="flex items-center gap-1">
                 <MessageCircle className="size-3" />
-                {formatCompactNumber(video.comments)}
+                {compact(video.comments)}
               </span>
             )}
-            {engagement != null && <span>{engagement.toFixed(1)} %</span>}
+            {engagement != null && <span>{t.common.percent(engagement.toFixed(1))}</span>}
           </span>
         </div>
       </div>

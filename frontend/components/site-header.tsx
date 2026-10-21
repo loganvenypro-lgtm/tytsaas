@@ -6,10 +6,12 @@ import { ChevronRight } from "lucide-react"
 
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { useI18n } from "@/components/i18n-provider"
 import { navTrail } from "@/lib/nav"
 
 /** Top bar of the signed-in pages: where the page sits in the sidebar ("Trending › Top Videos"). */
 export function SiteHeader() {
+  const { t } = useI18n()
   const trail = navTrail(usePathname())
 
   return (
@@ -27,7 +29,7 @@ export function SiteHeader() {
               <React.Fragment key={crumb}>
                 {i > 0 && <ChevronRight className="size-3.5 text-muted-foreground" />}
                 <span className={i === trail.crumbs.length - 1 ? "font-medium" : "text-muted-foreground"}>
-                  {crumb}
+                  {t.nav.items[crumb]}
                 </span>
               </React.Fragment>
             ))}

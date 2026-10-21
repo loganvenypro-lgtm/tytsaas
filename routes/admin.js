@@ -15,8 +15,6 @@ router.get("/ab-tests", admin.abTests);
 router.get("/thumbnails", admin.thumbnail);
 router.get("/tables", admin.tables);
 router.get("/tables/:name", admin.tableRows);
-router.get("/json", admin.jsonFiles);
-router.get("/json/:file", admin.jsonFile);
 
 // Express 5 forwards rejected handlers here; answer in JSON like the routes do
 router.use((err, req, res, next) => {

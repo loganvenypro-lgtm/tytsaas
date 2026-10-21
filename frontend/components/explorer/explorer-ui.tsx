@@ -5,7 +5,7 @@ import { LogIn, SearchX, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatCompactNumber } from "@/lib/utils";
+import { useI18n } from "@/components/i18n-provider";
 
 export interface Option {
   value: string;
@@ -15,14 +15,14 @@ export interface Option {
 /** Thrown by explorer fetches when the session cookie is missing or expired. */
 export class SessionExpiredError extends Error {
   constructor() {
-    super("Session expirée");
+    super("Session expired");
   }
 }
 
 export async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (res.status === 401) throw new SessionExpiredError();
-  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Erreur de chargement.");
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `HTTP ${res.status}`);
   return res.json();
 }
 
@@ -66,9 +66,10 @@ export interface Topic {
 }
 
 export function TopicChips({ topics }: { topics: Topic[] }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm text-muted-foreground">Essayer</span>
+      <span className="text-sm text-muted-foreground">{t.explorer.try}</span>
       {topics.map((topic) => (
         <Button
           key={topic.label}
@@ -98,6 +99,7 @@ export function ActiveFilters({
   onRemove: (key: string) => void;
   onClear: () => void;
 }) {
+  const { t } = useI18n();
   if (chips.length === 0) return null;
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -108,26 +110,19 @@ export function ActiveFilters({
             type="button"
             onClick={() => onRemove(chip.key)}
             className="rounded-sm p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
-            aria-label={`Retirer le filtre ${chip.label}`}
+            aria-label={t.explorer.removeFilter(chip.label)}
           >
             <X className="size-3" />
           </button>
         </Badge>
       ))}
       <Button variant="link" size="sm" className="h-7 px-1 text-muted-foreground" onClick={onClear}>
-        Tout effacer
+        {t.explorer.clearAll}
       </Button>
     </div>
   );
 }
 
-function updatedAgo(iso: string): string {
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (minutes < 1) return "à l'instant";
-  if (minutes < 60) return `il y a ${minutes} min`;
-  const hours = Math.round(minutes / 60);
-  return hours < 24 ? `il y a ${hours} h` : `il y a ${Math.round(hours / 24)} j`;
-}
 
 export function ResultsBar({
   loading,
@@ -142,21 +137,22 @@ export function ResultsBar({
   updatedAt: string | null;
   sort: React.ReactNode;
 }) {
+  const { t, compact, ago } = useI18n();
   return (
     <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
         <span className="font-medium">
-          {loading ? "Chargement…" : `${formatCompactNumber(total)} ${total > 1 ? noun[1] : noun[0]}`}
+          {loading ? t.common.loading : `${compact(total)} ${total > 1 ? noun[1] : noun[0]}`}
         </span>
         {updatedAt && (
           <span className="flex items-center gap-1.5 text-muted-foreground">
             <span className="size-1.5 rounded-full bg-emerald-500" />
-            Mis à jour {updatedAgo(updatedAt)}
+            {t.time.updated(ago(updatedAt))}
           </span>
         )}
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Trier par</span>
+        <span className="text-sm text-muted-foreground">{t.explorer.sortBy}</span>
         {sort}
       </div>
     </div>
@@ -187,11 +183,12 @@ export function EmptyState({
 }
 
 export function SessionExpiredState() {
+  const { t } = useI18n();
   return (
-    <EmptyState title="Ta session a expiré" description="Reconnecte-toi pour voir les données à jour.">
+    <EmptyState title={t.explorer.sessionExpired.title} description={t.explorer.sessionExpired.description}>
       <Button size="sm" nativeButton={false} render={<Link href="/login" />}>
         <LogIn className="size-4" />
-        Se reconnecter
+        {t.explorer.sessionExpired.action}
       </Button>
     </EmptyState>
   );

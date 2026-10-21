@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   Bookmark,
-  Braces,
   ChevronLeft,
   ChevronRight,
   Database,
@@ -22,19 +21,19 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useI18n } from "@/components/i18n-provider";
+import type { Messages } from "@/lib/i18n";
+
+type AdminMessages = Messages["admin"];
 
 /* ------------------------------------------------------------------ helpers */
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
-  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Erreur de chargement.");
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `HTTP ${res.status}`);
   return res.json();
 }
 
-function formatCompactNumber(number?: number | null): string {
-  if (number === undefined || number === null || isNaN(number)) return "0";
-  return new Intl.NumberFormat("fr-FR", { notation: "compact", compactDisplay: "short", maximumFractionDigits: 1 }).format(number);
-}
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
@@ -48,6 +47,17 @@ function EmptyState({ title, description }: { title: string; description: string
       </div>
     </div>
   );
+}
+
+/** Strings and formatters of the admin, in the interface language. */
+function useAdminI18n() {
+  const { t, compact, date } = useI18n();
+  const fmtDate = (value: string | null | undefined) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? String(value) : date(d, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+  return { t, ta: t.admin, common: t.common, compact, fmtDate };
 }
 
 function useAdminData<T>(url: string) {
@@ -90,19 +100,7 @@ function qs(params: Record<string, string | number | undefined>) {
   return str ? `?${str}` : "";
 }
 
-function fmtDate(value: string | null | undefined) {
-  if (!value) return "—";
-  const d = new Date(value);
-  return isNaN(d.getTime())
-    ? String(value)
-    : d.toLocaleString("fr-FR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-}
 
-function fmtBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} o`;
-  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} Ko`;
-  return `${(bytes / 1024 ** 2).toFixed(1)} Mo`;
-}
 
 function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
@@ -114,17 +112,18 @@ function SearchBox({ value, onChange, placeholder }: { value: string; onChange: 
 }
 
 function Pager({ page, size, total, onPage }: { page: number; size: number; total: number; onPage: (p: number) => void }) {
+  const { ta, compact } = useAdminI18n();
   const pages = Math.max(1, Math.ceil(total / size));
   return (
     <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
       <span>
-        {formatCompactNumber(total)} résultat{total > 1 ? "s" : ""} · page {page}/{pages}
+        {ta.results(compact(total), total > 1)} · {ta.page(page, pages)}
       </span>
       <div className="flex gap-1">
-        <Button variant="outline" size="icon-sm" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Page précédente">
+        <Button variant="outline" size="icon-sm" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label={ta.previousPage}>
           <ChevronLeft />
         </Button>
-        <Button variant="outline" size="icon-sm" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Page suivante">
+        <Button variant="outline" size="icon-sm" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label={ta.nextPage}>
           <ChevronRight />
         </Button>
       </div>
@@ -143,7 +142,8 @@ function Loading() {
 }
 
 function Failed({ error }: { error: string }) {
-  return <EmptyState title="Impossible de charger ces données" description={error} />;
+  const { ta } = useAdminI18n();
+  return <EmptyState title={ta.loadFailed} description={error} />;
 }
 
 function Table({ head, children }: { head: React.ReactNode[]; children: React.ReactNode }) {
@@ -200,28 +200,32 @@ interface Overview {
   posthogUrl: string;
 }
 
-const COUNTERS: { key: string; label: string; sub?: (c: Record<string, number>) => string }[] = [
-  { key: "users", label: "Utilisateurs", sub: (c) => `+${c.newUsers7d} sur 7 jours` },
-  { key: "onboardedUsers", label: "Onboardings terminés", sub: (c) => `${c.onboardings} analyses IA (${c.onboardingsOk} réussies)` },
-  { key: "folders", label: "Dossiers", sub: (c) => `${c.folderItems} éléments enregistrés` },
-  { key: "trackedChannels", label: "Chaînes suivies" },
-  { key: "abTests", label: "A/B tests détectés", sub: () => "titres et miniatures changés" },
-  { key: "channels", label: "Chaînes en base" },
-  { key: "videos", label: "Vidéos en base" },
-  { key: "alerts", label: "Alertes outliers" },
-];
+function counters(ta: AdminMessages): { key: string; label: string; sub?: (c: Record<string, number>) => string }[] {
+  const c = ta.counters;
+  return [
+    { key: "users", label: c.users, sub: (n) => c.usersSub(n.newUsers7d) },
+    { key: "onboardedUsers", label: c.onboardedUsers, sub: (n) => c.onboardedUsersSub(n.onboardings, n.onboardingsOk) },
+    { key: "folders", label: c.folders, sub: (n) => c.foldersSub(n.folderItems) },
+    { key: "trackedChannels", label: c.trackedChannels },
+    { key: "abTests", label: c.abTests, sub: () => c.abTestsSub },
+    { key: "channels", label: c.channels },
+    { key: "videos", label: c.videos },
+    { key: "alerts", label: c.alerts },
+  ];
+}
 
 function OverviewTab() {
+  const { ta, compact, fmtDate } = useAdminI18n();
   const { data, error } = useAdminData<Overview>("/api/admin/overview");
   if (error) return <Failed error={error} />;
   if (!data) return <Loading />;
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {COUNTERS.map((c) => (
+        {counters(ta).map((c) => (
           <Card key={c.key} className="gap-1 p-4">
             <span className="text-xs text-muted-foreground">{c.label}</span>
-            <span className="text-2xl font-semibold tabular-nums">{formatCompactNumber(data.counts[c.key])}</span>
+            <span className="text-2xl font-semibold tabular-nums">{compact(data.counts[c.key])}</span>
             {c.sub && <span className="text-xs text-muted-foreground">{c.sub(data.counts)}</span>}
           </Card>
         ))}
@@ -229,8 +233,8 @@ function OverviewTab() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-medium">Derniers inscrits</h3>
-          <Table head={["Utilisateur", "Rôle", "Inscription"]}>
+          <h3 className="text-sm font-medium">{ta.overview.recentUsers}</h3>
+          <Table head={[ta.overview.user, ta.overview.role, ta.overview.signedUp]}>
             {data.recentUsers.map((u) => (
               <tr key={u.id}>
                 <Td>
@@ -244,8 +248,8 @@ function OverviewTab() {
           </Table>
         </div>
         <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-medium">Derniers scans</h3>
-          <Table head={["#", "Statut", "Début", "Fin"]}>
+          <h3 className="text-sm font-medium">{ta.overview.recentScans}</h3>
+          <Table head={["#", ta.overview.status, ta.overview.start, ta.overview.end]}>
             {data.recentScans.map((s) => (
               <tr key={s.id}>
                 <Td className="text-muted-foreground">{s.id}</Td>
@@ -262,11 +266,11 @@ function OverviewTab() {
 
       <Card className="flex-row items-center justify-between gap-4 p-4">
         <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-medium">Analytics produit</span>
-          <span className="text-xs text-muted-foreground">Le funnel d&apos;onboarding et les sessions sont suivis dans PostHog.</span>
+          <span className="text-sm font-medium">{ta.overview.analyticsTitle}</span>
+          <span className="text-xs text-muted-foreground">{ta.overview.analyticsDescription}</span>
         </div>
         <Button variant="outline" size="sm" nativeButton={false} render={<a href={data.posthogUrl} target="_blank" rel="noreferrer" />}>
-          Ouvrir PostHog <ExternalLink />
+          {ta.overview.openPosthog} <ExternalLink />
         </Button>
       </Card>
     </div>
@@ -294,18 +298,19 @@ interface AdminUser {
 }
 
 function UsersTab() {
+  const { ta, fmtDate } = useAdminI18n();
   const [search, setSearch] = React.useState("");
   const q = useDebounced(search);
   const { data, error } = useAdminData<{ users: AdminUser[] }>(`/api/admin/users${qs({ q })}`);
   return (
     <div className="flex flex-col gap-3">
-      <SearchBox value={search} onChange={setSearch} placeholder="Email, nom, chaîne…" />
+      <SearchBox value={search} onChange={setSearch} placeholder={ta.users.search} />
       {error ? (
         <Failed error={error} />
       ) : !data ? (
         <Loading />
       ) : (
-        <Table head={["Utilisateur", "Rôle", "Sa chaîne", "Concurrents choisis", "Dossiers", "Analyses", "Inscription"]}>
+        <Table head={[ta.overview.user, ta.overview.role, ta.users.ownChannel, ta.users.competitors, ta.users.folders, ta.users.analyses, ta.overview.signedUp]}>
           {data.users.map((u) => (
             <tr key={u.id}>
               <Td>
@@ -337,7 +342,7 @@ function UsersTab() {
                 </div>
               </Td>
               <Td className="tabular-nums">
-                {u.folders} <span className="text-xs text-muted-foreground">({u.folderItems} él.)</span>
+                {u.folders} <span className="text-xs text-muted-foreground">{ta.users.items(u.folderItems)}</span>
               </Td>
               <Td className="tabular-nums">{u.onboardings}</Td>
               <Td className="whitespace-nowrap text-muted-foreground">{fmtDate(u.createdAt)}</Td>
@@ -368,21 +373,22 @@ interface Onboarding {
 }
 
 function OnboardingsTab() {
+  const { ta } = useAdminI18n();
   const [search, setSearch] = React.useState("");
   const q = useDebounced(search);
   const [page, setPage] = usePage(q);
   const { data, error } = useAdminData<{ total: number; rows: Onboarding[] }>(`/api/admin/onboardings${qs({ q, page })}`);
   return (
     <div className="flex flex-col gap-3">
-      <SearchBox value={search} onChange={setSearch} placeholder="Utilisateur, chaîne, concurrent…" />
+      <SearchBox value={search} onChange={setSearch} placeholder={ta.onboardings.search} />
       {error ? (
         <Failed error={error} />
       ) : !data ? (
         <Loading />
       ) : data.rows.length === 0 ? (
         <EmptyState
-          title="Aucune analyse enregistrée"
-          description="Les analyses d'onboarding sont enregistrées à partir de maintenant : chaque nouvel onboarding apparaîtra ici avec les concurrents trouvés et l'explication de l'IA."
+          title={ta.onboardings.emptyTitle}
+          description={ta.onboardings.emptyDescription}
         />
       ) : (
         <>
@@ -397,6 +403,7 @@ function OnboardingsTab() {
 }
 
 function OnboardingCard({ o }: { o: Onboarding }) {
+  const { ta, common, compact, fmtDate } = useAdminI18n();
   return (
     <Card className="gap-3 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -404,15 +411,15 @@ function OnboardingCard({ o }: { o: Onboarding }) {
           {o.reference ? <ChannelChip id={o.reference.id} name={o.reference.title} avatar={o.reference.avatar} /> : <span className="text-sm">{o.inputChannel || o.niche || "—"}</span>}
           {o.reference && (
             <span className="text-xs text-muted-foreground">
-              {formatCompactNumber(o.reference.subscriberCount)} abonnés · {o.reference.archetypeLabel}
+              {common.subscribers(compact(o.reference.subscriberCount))} · {o.reference.archetypeLabel}
             </span>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          {o.error ? <Badge variant="destructive">échec</Badge> : <Badge variant="secondary">IA : {o.insights?.engine ?? "—"}</Badge>}
+          {o.error ? <Badge variant="destructive">{ta.onboardings.failed}</Badge> : <Badge variant="secondary">{ta.onboardings.ai(o.insights?.engine ?? "—")}</Badge>}
           {o.role && <Badge variant="outline">{o.role}</Badge>}
-          {o.niche && <Badge variant="outline">niche {o.niche}</Badge>}
-          <span>{o.email ?? "anonyme"}</span>
+          {o.niche && <Badge variant="outline">{ta.onboardings.niche(o.niche)}</Badge>}
+          <span>{o.email ?? ta.onboardings.anonymous}</span>
           <span>·</span>
           <span>{fmtDate(o.createdAt)}</span>
           {o.durationMs != null && <span>· {(o.durationMs / 1000).toFixed(0)} s</span>}
@@ -427,7 +434,7 @@ function OnboardingCard({ o }: { o: Onboarding }) {
       )}
       {o.competitors.length > 0 && (
         <details>
-          <summary className="cursor-pointer text-sm font-medium">{o.competitors.length} concurrents trouvés</summary>
+          <summary className="cursor-pointer text-sm font-medium">{ta.onboardings.competitorsFound(o.competitors.length)}</summary>
           <div className="mt-2 flex flex-col divide-y">
             {o.competitors.map((c) => {
               const reason = o.insights?.reasons?.[c.id];
@@ -439,8 +446,8 @@ function OnboardingCard({ o }: { o: Onboarding }) {
                   </div>
                   <div className="text-sm">
                     {reason?.why && <p>{reason.why}</p>}
-                    {reason?.steal && <p className="text-muted-foreground">À reprendre : {reason.steal}</p>}
-                    {!reason && <p className="text-muted-foreground">{formatCompactNumber(c.subscriberCount)} abonnés · {c.archetypeLabel}</p>}
+                    {reason?.steal && <p className="text-muted-foreground">{ta.onboardings.steal(reason.steal)}</p>}
+                    {!reason && <p className="text-muted-foreground">{common.subscribers(compact(c.subscriberCount))} · {c.archetypeLabel}</p>}
                   </div>
                 </div>
               );
@@ -466,18 +473,19 @@ interface AdminFolder {
 }
 
 function FoldersTab() {
+  const { ta, fmtDate } = useAdminI18n();
   const [search, setSearch] = React.useState("");
   const q = useDebounced(search);
   const { data, error } = useAdminData<{ folders: AdminFolder[] }>(`/api/admin/folders${qs({ q })}`);
   return (
     <div className="flex flex-col gap-3">
-      <SearchBox value={search} onChange={setSearch} placeholder="Dossier, utilisateur, vidéo…" />
+      <SearchBox value={search} onChange={setSearch} placeholder={ta.folders.search} />
       {error ? (
         <Failed error={error} />
       ) : !data ? (
         <Loading />
       ) : data.folders.length === 0 ? (
-        <EmptyState title="Aucun dossier" description="Aucun utilisateur n'a encore créé de dossier." />
+        <EmptyState title={ta.folders.emptyTitle} description={ta.folders.emptyDescription} />
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
           {data.folders.map((f) => (
@@ -492,7 +500,7 @@ function FoldersTab() {
                 <span className="text-xs whitespace-nowrap text-muted-foreground">{fmtDate(f.updatedAt)}</span>
               </div>
               {f.items.length === 0 ? (
-                <span className="text-sm text-muted-foreground">Dossier vide</span>
+                <span className="text-sm text-muted-foreground">{ta.folders.emptyFolder}</span>
               ) : (
                 <div className="flex flex-col divide-y">
                   {f.items.map((i) => (
@@ -505,7 +513,7 @@ function FoldersTab() {
                           className={i.type === "video" ? "h-8 w-14 rounded object-cover" : "size-8 rounded-full object-cover"}
                         />
                       ) : null}
-                      <Badge variant="outline">{i.type === "video" ? "vidéo" : "chaîne"}</Badge>
+                      <Badge variant="outline">{i.type === "video" ? ta.folders.video : ta.folders.channel}</Badge>
                       <a
                         href={i.type === "video" ? `https://www.youtube.com/watch?v=${i.id}` : `https://www.youtube.com/channel/${i.id}`}
                         target="_blank"
@@ -547,41 +555,42 @@ interface TrackedData {
 }
 
 function ChannelsTab() {
+  const { ta, compact, fmtDate } = useAdminI18n();
   const [search, setSearch] = React.useState("");
   const q = useDebounced(search);
   const { data, error } = useAdminData<TrackedData>(`/api/admin/tracked${qs({ q })}`);
   return (
     <div className="flex flex-col gap-3">
-      <SearchBox value={search} onChange={setSearch} placeholder="Nom, handle, ID de chaîne…" />
+      <SearchBox value={search} onChange={setSearch} placeholder={ta.channels.search} />
       {error ? (
         <Failed error={error} />
       ) : !data ? (
         <Loading />
       ) : (
         <>
-          <h3 className="text-sm font-medium">Choisies à l&apos;onboarding ({data.picked.length})</h3>
-          <Table head={["Chaîne", "Abonnés", "Comme « ma chaîne »", "Comme concurrent"]}>
+          <h3 className="text-sm font-medium">{ta.channels.picked(data.picked.length)}</h3>
+          <Table head={[ta.channels.channel, ta.channels.subscribers, ta.channels.asOwn, ta.channels.asCompetitor]}>
             {data.picked.map((p) => (
               <tr key={p.channelId}>
                 <Td>
                   <ChannelChip id={p.channelId} name={p.name} avatar={p.avatar} />
                 </Td>
-                <Td className="tabular-nums">{formatCompactNumber(p.subscribers)}</Td>
+                <Td className="tabular-nums">{compact(p.subscribers)}</Td>
                 <Td className="tabular-nums">{p.asOwn}</Td>
                 <Td className="tabular-nums">{p.asCompetitor}</Td>
               </tr>
             ))}
           </Table>
-          <h3 className="mt-3 text-sm font-medium">Chaînes suivies ({data.tracked.length})</h3>
-          <Table head={["Chaîne", "Abonnés", "Vidéos", "Vues de référence", "Dossier", "Tags", "Dernière vérif.", "Ajoutée"]}>
+          <h3 className="mt-3 text-sm font-medium">{ta.channels.tracked(data.tracked.length)}</h3>
+          <Table head={[ta.channels.channel, ta.channels.subscribers, ta.channels.videos, ta.channels.baselineViews, ta.channels.folder, ta.channels.tags, ta.channels.lastChecked, ta.channels.added]}>
             {data.tracked.map((t) => (
               <tr key={t.id}>
                 <Td>
                   <ChannelChip id={t.channelId} name={t.name} avatar={t.avatar} />
                 </Td>
-                <Td className="tabular-nums">{formatCompactNumber(t.subscribers)}</Td>
-                <Td className="tabular-nums">{formatCompactNumber(t.videoCount)}</Td>
-                <Td className="tabular-nums">{formatCompactNumber(t.baselineViews)}</Td>
+                <Td className="tabular-nums">{compact(t.subscribers)}</Td>
+                <Td className="tabular-nums">{compact(t.videoCount)}</Td>
+                <Td className="tabular-nums">{compact(t.baselineViews)}</Td>
                 <Td>{t.folderName ?? "—"}</Td>
                 <Td>
                   <div className="flex max-w-[220px] flex-wrap gap-1">
@@ -621,6 +630,7 @@ interface AbTest {
 }
 
 function AbTestsTab() {
+  const { ta, common, compact, fmtDate } = useAdminI18n();
   const [search, setSearch] = React.useState("");
   const [kind, setKind] = React.useState<"" | "title" | "thumbnail">("");
   const q = useDebounced(search);
@@ -629,12 +639,12 @@ function AbTestsTab() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
-        Vidéos dont le titre ou la miniature a changé après publication, détectées par le scanner (table <code>video_variants</code>).
+        {ta.abTests.intro} <code>video_variants</code>).
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <SearchBox value={search} onChange={setSearch} placeholder="Titre, chaîne, ID vidéo…" />
+        <SearchBox value={search} onChange={setSearch} placeholder={ta.abTests.search} />
         <div className="flex gap-1">
-          {([["", "Tout"], ["title", "Titres"], ["thumbnail", "Miniatures"]] as const).map(([value, label]) => (
+          {([["", ta.abTests.all], ["title", ta.abTests.titles], ["thumbnail", ta.abTests.thumbnails]] as const).map(([value, label]) => (
             <Button key={value} size="sm" variant={kind === value ? "default" : "outline"} onClick={() => setKind(value)}>
               {label}
             </Button>
@@ -660,11 +670,11 @@ function AbTestsTab() {
                     {t.title || t.videoId}
                   </a>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <Badge variant="secondary">{t.kind === "title" ? "Titre" : "Miniature"} · {t.variants} versions</Badge>
+                    <Badge variant="secondary">{t.kind === "title" ? ta.abTests.title : ta.abTests.thumbnail} · {ta.abTests.versions(t.variants)}</Badge>
                     {t.channelName && <span>{t.channelName}</span>}
-                    {t.views != null && <span>· {formatCompactNumber(t.views)} vues</span>}
+                    {t.views != null && <span>· {common.views(compact(t.views))}</span>}
                     {t.multiplier != null && <span>· x{Number(t.multiplier).toFixed(1)}</span>}
-                    <span>· dernier changement {fmtDate(t.lastChange)}</span>
+                    <span>· {ta.abTests.lastChange(fmtDate(t.lastChange))}</span>
                   </div>
                 </div>
               </div>
@@ -674,15 +684,15 @@ function AbTestsTab() {
                     <div key={i} className="flex w-48 flex-col gap-1">
                       {h.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={h.image} alt={`Miniature n°${i + 1}`} className="aspect-video w-full rounded-md border object-cover" loading="lazy" />
+                        <img src={h.image} alt={ta.abTests.thumbnailAlt(i + 1)} className="aspect-video w-full rounded-md border object-cover" loading="lazy" />
                       ) : (
                         <div className="flex aspect-video w-full items-center justify-center rounded-md border border-dashed px-2 text-center text-xs text-muted-foreground">
-                          Image non enregistrée
+                          {ta.abTests.notSaved}
                         </div>
                       )}
-                      <span className="text-xs font-medium">Version {i + 1}</span>
+                      <span className="text-xs font-medium">{ta.abTests.version(i + 1)}</span>
                       <span className="text-xs text-muted-foreground">
-                        Vue du {fmtDate(h.firstSeenAt)} au {fmtDate(h.lastSeenAt)}
+                        {ta.abTests.seenBetween(fmtDate(h.firstSeenAt), fmtDate(h.lastSeenAt))}
                       </span>
                     </div>
                   ))}
@@ -714,6 +724,7 @@ function cellText(value: unknown): string {
 }
 
 function PostgresTab() {
+  const { ta, compact } = useAdminI18n();
   const { data } = useAdminData<{ tables: { name: string; rows: number; bytes: number }[] }>("/api/admin/tables");
   const [table, setTable] = React.useState<string | null>(null);
   if (!data) return <Loading />;
@@ -727,18 +738,19 @@ function PostgresTab() {
             className={`flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-muted ${table === t.name ? "bg-muted font-medium" : ""}`}
           >
             <span className="truncate">{t.name}</span>
-            <span className="text-xs text-muted-foreground tabular-nums">{formatCompactNumber(t.rows)}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{compact(t.rows)}</span>
           </button>
         ))}
       </Card>
       <div className="min-w-0 flex-1">
-        {table ? <TableRows key={table} name={table} /> : <EmptyState title="Choisis une table" description={`${data.tables.length} tables PostgreSQL.`} />}
+        {table ? <TableRows key={table} name={table} /> : <EmptyState title={ta.postgres.pickTitle} description={ta.postgres.pickDescription(data.tables.length)} />}
       </div>
     </div>
   );
 }
 
 function TableRows({ name }: { name: string }) {
+  const { ta } = useAdminI18n();
   const [search, setSearch] = React.useState("");
   const q = useDebounced(search);
   const [page, setPage] = usePage(q);
@@ -748,7 +760,7 @@ function TableRows({ name }: { name: string }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <SearchBox value={search} onChange={setSearch} placeholder={`Rechercher dans ${name}…`} />
+        <SearchBox value={search} onChange={setSearch} placeholder={ta.postgres.search(name)} />
         {data && <Pager page={page} size={50} total={data.total} onPage={setPage} />}
       </div>
       {error ? (
@@ -774,123 +786,34 @@ function TableRows({ name }: { name: string }) {
   );
 }
 
-/* ------------------------------------------------------------------ JSON files */
-
-function JsonTab() {
-  const { data } = useAdminData<{ files: { name: string; bytes: number; updatedAt: string }[] }>("/api/admin/json");
-  const [file, setFile] = React.useState<string | null>(null);
-  if (!data) return <Loading />;
-  return (
-    <div className="flex flex-col gap-4 lg:flex-row">
-      <Card className="h-fit shrink-0 gap-0 p-1 lg:w-72">
-        {data.files.map((f) => (
-          <button
-            key={f.name}
-            onClick={() => setFile(f.name)}
-            className={`flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-muted ${file === f.name ? "bg-muted font-medium" : ""}`}
-          >
-            <span className="truncate">{f.name}</span>
-            <span className="text-xs whitespace-nowrap text-muted-foreground">{fmtBytes(f.bytes)}</span>
-          </button>
-        ))}
-      </Card>
-      <div className="min-w-0 flex-1">
-        {file ? <JsonEntries key={file} file={file} /> : <EmptyState title="Choisis un fichier" description={`${data.files.length} bases JSON dans data/.`} />}
-      </div>
-    </div>
-  );
-}
-
-function JsonEntries({ file }: { file: string }) {
-  const [path, setPath] = React.useState<string[]>([]);
-  const [search, setSearch] = React.useState("");
-  const q = useDebounced(search);
-  const [page, setPage] = usePage(`${q}|${path.join(".")}`);
-  const { data, error } = useAdminData<{ total: number; entries: { key: string; summary: string; nested: boolean; json: string }[] }>(
-    `/api/admin/json/${encodeURIComponent(file)}${qs({ q, page, path: path.join(".") })}`
-  );
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-1 text-sm">
-        <button className="font-medium hover:underline" onClick={() => setPath([])}>
-          {file}
-        </button>
-        {path.map((p, i) => (
-          <React.Fragment key={i}>
-            <ChevronRight className="size-3.5 text-muted-foreground" />
-            <button className="hover:underline" onClick={() => setPath(path.slice(0, i + 1))}>
-              {p}
-            </button>
-          </React.Fragment>
-        ))}
-      </div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <SearchBox value={search} onChange={setSearch} placeholder="Rechercher une clé ou une valeur…" />
-        {data && <Pager page={page} size={25} total={data.total} onPage={setPage} />}
-      </div>
-      {error ? (
-        <Failed error={error} />
-      ) : !data ? (
-        <Loading />
-      ) : (
-        <Card className="gap-0 divide-y p-0">
-          {data.entries.map((e) => (
-            <details key={e.key} className="group px-3 py-2">
-              <summary className="flex cursor-pointer items-center gap-2 text-sm">
-                <span className="truncate font-mono text-xs">{e.key}</span>
-                <span className="text-xs text-muted-foreground">{e.summary}</span>
-                {e.nested && (
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    className="ml-auto"
-                    onClick={(ev) => {
-                      ev.preventDefault();
-                      setSearch("");
-                      setPath([...path, e.key]);
-                    }}
-                  >
-                    Ouvrir <ChevronRight />
-                  </Button>
-                )}
-              </summary>
-              <pre className="mt-2 max-h-96 overflow-auto rounded-md bg-muted/60 p-3 font-mono text-xs">{e.json}</pre>
-            </details>
-          ))}
-        </Card>
-      )}
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ page */
 
-const TABS = [
-  { value: "overview", label: "Vue d'ensemble", icon: LayoutDashboard, Content: OverviewTab },
-  { value: "users", label: "Utilisateurs", icon: Users, Content: UsersTab },
-  { value: "onboardings", label: "Onboardings & IA", icon: Sparkles, Content: OnboardingsTab },
-  { value: "folders", label: "Dossiers", icon: Bookmark, Content: FoldersTab },
-  { value: "channels", label: "Chaînes", icon: Eye, Content: ChannelsTab },
-  { value: "ab-tests", label: "A/B tests", icon: FlaskConical, Content: AbTestsTab },
-  { value: "postgres", label: "PostgreSQL", icon: Database, Content: PostgresTab },
-  { value: "json", label: "Bases JSON", icon: Braces, Content: JsonTab },
+const TABS: { value: string; label: keyof AdminMessages["tabs"]; icon: React.ComponentType; Content: React.ComponentType }[] = [
+  { value: "overview", label: "overview", icon: LayoutDashboard, Content: OverviewTab },
+  { value: "users", label: "users", icon: Users, Content: UsersTab },
+  { value: "onboardings", label: "onboardings", icon: Sparkles, Content: OnboardingsTab },
+  { value: "folders", label: "folders", icon: Bookmark, Content: FoldersTab },
+  { value: "channels", label: "channels", icon: Eye, Content: ChannelsTab },
+  { value: "ab-tests", label: "abTests", icon: FlaskConical, Content: AbTestsTab },
+  { value: "postgres", label: "postgres", icon: Database, Content: PostgresTab },
 ];
 
 /** /admin: every user, onboarding, AI result and database of the site. */
 export function AdminView({ adminEmail }: { adminEmail: string }) {
+  const { ta } = useAdminI18n();
   return (
     <div className="flex min-h-full flex-col">
       <div className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-6 px-4 py-6 md:px-6">
         <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Espace admin</h2>
-          <p className="text-sm text-muted-foreground">Toutes les données du site. Connecté en tant que {adminEmail}.</p>
+          <h2 className="text-2xl font-semibold tracking-tight">{ta.title}</h2>
+          <p className="text-sm text-muted-foreground">{ta.description(adminEmail)}</p>
         </div>
         <Tabs defaultValue="overview" className="gap-5">
           <TabsList className="w-full flex-wrap group-data-horizontal/tabs:h-auto justify-start p-1 sm:w-fit">
             {TABS.map((t) => (
               <TabsTrigger key={t.value} value={t.value} className="flex-none px-3">
                 <t.icon />
-                {t.label}
+                {ta.tabs[t.label]}
               </TabsTrigger>
             ))}
           </TabsList>

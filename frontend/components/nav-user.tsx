@@ -23,6 +23,7 @@ import {
 import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon, ShieldCheckIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 
+import { useI18n } from "@/components/i18n-provider"
 import { toast } from "@/components/ui/toast"
 import { signOut } from "@/lib/auth-client"
 import { resolveAvatar } from "@/lib/avatar"
@@ -30,6 +31,7 @@ import type { SessionUser } from "@/lib/session"
 
 export function NavUser({ user }: { user: SessionUser }) {
   const { isMobile } = useSidebar()
+  const { t } = useI18n()
   const router = useRouter()
   const avatar = resolveAvatar(user)
   const initials = user.name
@@ -41,7 +43,7 @@ export function NavUser({ user }: { user: SessionUser }) {
 
   async function handleLogout() {
     await signOut()
-    toast.add({ type: "success", title: "Tu es déconnecté" })
+    toast.add({ type: "success", title: t.userMenu.loggedOut })
     router.push("/login")
     router.refresh()
   }
@@ -94,22 +96,22 @@ export function NavUser({ user }: { user: SessionUser }) {
               <DropdownMenuItem onClick={() => router.push("/settings")}>
                 <CircleUserRoundIcon
                 />
-                Account
+                {t.userMenu.account}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push("/settings?tab=account")}>
                 <CreditCardIcon
                 />
-                Billing
+                {t.userMenu.billing}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <BellIcon
                 />
-                Notifications
+                {t.userMenu.notifications}
               </DropdownMenuItem>
               {user.role === "admin" && (
                 <DropdownMenuItem onClick={() => router.push("/admin")}>
                   <ShieldCheckIcon />
-                  Admin
+                  {t.userMenu.admin}
                 </DropdownMenuItem>
               )}
             </DropdownMenuGroup>
@@ -117,7 +119,7 @@ export function NavUser({ user }: { user: SessionUser }) {
             <DropdownMenuItem onClick={handleLogout}>
               <LogOutIcon
               />
-              Log out
+              {t.userMenu.logout}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

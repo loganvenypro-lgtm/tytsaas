@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn, formatCompactNumber } from "@/lib/utils";
-import { CATEGORY_LABELS, LANGUAGE_LABELS } from "@/components/top-videos/filter-options";
+import { useI18n } from "@/components/i18n-provider";
+import { cn } from "@/lib/utils";
 
 export interface TrendChannel {
   id: string;
@@ -44,44 +44,12 @@ export interface TrendChannel {
   }[];
 }
 
-export function ago(iso: string): string {
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days < 1) return "aujourd'hui";
-  if (days < 30) return `il y a ${days} j`;
-  return `il y a ${Math.round(days / 30)} mois`;
-}
-
-function signed(n: number): string {
-  return `${n >= 0 ? "+" : "−"}${formatCompactNumber(Math.abs(n))}`;
-}
-
-/** "créée il y a 4 mois" */
-export function channelAge(iso: string): string {
-  const days = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
-  if (days < 30) return `créée il y a ${days} j`;
-  if (days < 365) return `créée il y a ${Math.round(days / 30)} mois`;
-  const years = Math.round(days / 365);
-  return `créée il y a ${years} an${years > 1 ? "s" : ""}`;
-}
-
-/** "Découverte il y a 17 min" — when the scanner first added the channel. */
-export function discoveredAgo(iso: string): string {
-  const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60_000));
-  if (minutes < 60) return `Découverte il y a ${Math.max(1, minutes)} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Découverte il y a ${hours} h`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `Découverte il y a ${days} j`;
-  if (days < 365) return `Découverte il y a ${Math.round(days / 30)} mois`;
-  const years = Math.round(days / 365);
-  return `Découverte il y a ${years} an${years > 1 ? "s" : ""}`;
-}
-
 export function DiscoveredBadge({ at }: { at: string }) {
+  const { t, date, ago } = useI18n();
   return (
-    <Badge variant="outline" className="gap-1.5 font-normal text-muted-foreground" title={new Date(at).toLocaleString("fr-FR")}>
+    <Badge variant="outline" className="gap-1.5 font-normal text-muted-foreground" title={date(at, { dateStyle: "medium", timeStyle: "short" })}>
       <span className="size-1.5 rounded-full bg-muted-foreground/60" />
-      {discoveredAgo(at)}
+      {t.time.discovered(ago(at))}
     </Badge>
   );
 }
@@ -103,6 +71,9 @@ export function ChannelCard({
   variant?: "trends" | "finder";
   onSimilar: () => void;
 }) {
+  const { t, compact, ago, language: languageName } = useI18n();
+  const tc = t.breakout.card;
+  const signed = (n: number) => `${n >= 0 ? "+" : "−"}${compact(Math.abs(n))}`;
   const perDay = subscribersPerDay(channel.subscribers, channel.createdAt);
   const headlineScore = variant === "finder" ? channel.opportunityScore : channel.trendScore;
   const language = channel.language ?? null;
@@ -130,15 +101,15 @@ export function ChannelCard({
             {channel.name}
           </a>
           <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-            <span>{channel.subscribers != null ? `${formatCompactNumber(channel.subscribers)} abonnés` : "abonnés masqués"}</span>
-            {channel.createdAt && <span>· {channelAge(channel.createdAt)}</span>}
-            {language && <span>· {LANGUAGE_LABELS[language] ?? language.toUpperCase()}</span>}
+            <span>{channel.subscribers != null ? t.common.subscribers(compact(channel.subscribers)) : t.common.hiddenSubscribers}</span>
+            {channel.createdAt && <span>· {t.time.created(ago(channel.createdAt, "day"))}</span>}
+            {language && <span>· {languageName(language)}</span>}
             {channel.country && <span>· {channel.country}</span>}
           </div>
           <div className="flex flex-wrap gap-1">
-            <Badge variant="outline">{channel.isShortsChannel ? "Shorts" : "Vidéos longues"}</Badge>
-            {channel.categoryId != null && CATEGORY_LABELS[channel.categoryId] && (
-              <Badge variant="secondary">{CATEGORY_LABELS[channel.categoryId]}</Badge>
+            <Badge variant="outline">{channel.isShortsChannel ? t.common.shorts : t.common.longVideos}</Badge>
+            {channel.categoryId != null && t.categories[channel.categoryId] && (
+              <Badge variant="secondary">{t.categories[channel.categoryId]}</Badge>
             )}
             {channel.discoveredAt && <DiscoveredBadge at={channel.discoveredAt} />}
           </div>
@@ -159,15 +130,13 @@ export function ChannelCard({
                 >
                   <span className="text-lg leading-none font-semibold tabular-nums">{Math.round(headlineScore)}</span>
                   <span className="text-[10px] leading-tight opacity-80">
-                    {variant === "finder" ? "opportunité" : "tendance"}
+                    {variant === "finder" ? tc.opportunity : tc.trend}
                   </span>
                 </div>
               }
             />
             <TooltipContent className="max-w-64">
-              {variant === "finder"
-                ? "Score sur 100 : régularité des hits, vitesse de croissance, taille reproductible, dynamique actuelle et saturation de la niche."
-                : "Score sur 100 : performance des vidéos récentes vs la normale de la chaîne, outliers récents, vues de la semaine vs abonnés et croissance."}
+              {variant === "finder" ? tc.opportunityHint : tc.trendHint}
             </TooltipContent>
           </Tooltip>
         )}
@@ -206,7 +175,7 @@ export function ChannelCard({
                 </div>
                 <span className="line-clamp-1 text-xs font-medium group-hover:underline">{video.title}</span>
                 <span className="text-[11px] text-muted-foreground">
-                  {formatCompactNumber(video.views)} vues · {ago(video.publishedAt)}
+                  {t.common.views(compact(video.views))} · {ago(video.publishedAt, "day")}
                 </span>
               </a>
             ))}
@@ -217,19 +186,19 @@ export function ChannelCard({
 
       <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/60 p-2.5 text-center">
         <Insight
-          value={perDay != null ? `+${formatCompactNumber(perDay)}` : "—"}
-          label="abonnés / jour"
-          hint="Abonnés gagnés par jour en moyenne depuis la création de la chaîne"
+          value={perDay != null ? `+${compact(perDay)}` : "—"}
+          label={tc.perDay}
+          hint={tc.perDayHint}
         />
         <Insight
-          value={channel.outlierRate != null ? `${Math.round(channel.outlierRate * 100)} %` : "—"}
-          label="de hits"
-          hint="Part des vidéos (3 à 180 jours) qui font au moins 3x la normale de la chaîne"
+          value={channel.outlierRate != null ? t.common.percent(Math.round(channel.outlierRate * 100)) : "—"}
+          label={tc.hits}
+          hint={tc.hitsHint}
         />
         <Insight
           value={channel.opportunityScore != null ? String(Math.round(channel.opportunityScore)) : "—"}
-          label="opportunité"
-          hint="Score sur 100 : est-ce que tu peux te lancer sur ce créneau ?"
+          label={tc.opportunityShort}
+          hint={tc.opportunityShortHint}
         />
       </div>
 
@@ -239,11 +208,11 @@ export function ChannelCard({
             {hasDaily ? signed(channel.views24h!) : signed(channel.views7d)}
           </span>
           <span className="text-xs text-muted-foreground">
-            {hasDaily ? "Vues · 24 h" : "Vues des vidéos · 7 j"}
+            {hasDaily ? tc.views24h : tc.views7d}
           </span>
           {channel.recentRatio != null && channel.recentRatio >= 1.5 && (
             <Badge className="w-fit gap-1 bg-emerald-600 text-white">
-              <Flame className="size-3" />×{channel.recentRatio.toFixed(1)} sa normale
+              <Flame className="size-3" />{tc.vsUsual(channel.recentRatio.toFixed(1))}
             </Badge>
           )}
           {dayChange != null && (
@@ -256,21 +225,21 @@ export function ChannelCard({
             >
               {dayChange >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
               {dayChange >= 0 ? "+" : ""}
-              {dayChange.toFixed(0)} % vs veille
+              {tc.vsYesterday(dayChange.toFixed(0))}
             </Badge>
           )}
         </div>
         <div className="grid grid-cols-3 gap-4 text-right">
-          <Metric value={String(channel.uploads7d)} label="Vidéos · 7 j" />
-          <Metric value={String(channel.outliers30d)} label="Outliers · 30 j" />
-          <Metric value={channel.subs24h != null ? signed(channel.subs24h) : "—"} label="Abonnés · 24 h" />
+          <Metric value={String(channel.uploads7d)} label={tc.uploads7d} />
+          <Metric value={String(channel.outliers30d)} label={tc.outliers30d} />
+          <Metric value={channel.subs24h != null ? signed(channel.subs24h) : "—"} label={tc.subs24h} />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:flex">
         <Button variant="outline" className="sm:flex-1" onClick={onSimilar}>
           <Users className="size-4" />
-          Similaires
+          {tc.similar}
         </Button>
         <Button
           variant="ghost"

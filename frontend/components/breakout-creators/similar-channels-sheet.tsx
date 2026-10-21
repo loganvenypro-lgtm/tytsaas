@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchJson } from "@/components/explorer/explorer-ui";
-import { formatCompactNumber } from "@/lib/utils";
-import { channelAge } from "./channel-card";
+import { useI18n } from "@/components/i18n-provider";
 
 interface SimilarResponse {
   keywords: string[];
@@ -34,6 +33,8 @@ export function SimilarChannelsSheet({
   channel: { id: string; name: string } | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t, compact, ago } = useI18n();
+  const ts = t.breakout.similar;
   const [result, setResult] = useState<{ id: string; data?: SimilarResponse; error?: string } | null>(null);
 
   useEffect(() => {
@@ -55,10 +56,10 @@ export function SimilarChannelsSheet({
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Users className="size-4" />
-            Chaînes similaires
+            {ts.title}
           </SheetTitle>
           <SheetDescription>
-            {channel ? `Chaînes qui traitent les mêmes sujets que ${channel.name}.` : ""}
+            {channel ? ts.description(channel.name) : ""}
           </SheetDescription>
           {loaded?.data && loaded.data.keywords.length > 0 && (
             <div className="flex flex-wrap gap-1 pt-1">
@@ -73,12 +74,12 @@ export function SimilarChannelsSheet({
 
         <div className="flex flex-col gap-2 px-4 pb-6">
           {loaded?.error ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">{loaded.error}</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{t.common.loadErrorHint}</p>
           ) : !loaded?.data ? (
             Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-16 w-full" />)
           ) : loaded.data.items.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Pas encore assez de chaînes proches dans la base. La découverte automatique en ajoute toutes les 6 h.
+              {ts.empty}
             </p>
           ) : (
             loaded.data.items.map((item) => (
@@ -96,9 +97,9 @@ export function SimilarChannelsSheet({
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="truncate text-sm font-medium">{item.name}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {item.subscribers != null ? `${formatCompactNumber(item.subscribers)} abonnés` : "abonnés masqués"}
-                    {item.createdAt && ` · ${channelAge(item.createdAt)}`}
-                    {item.outlierRate != null && ` · ${Math.round(item.outlierRate * 100)} % de hits`}
+                    {item.subscribers != null ? t.common.subscribers(compact(item.subscribers)) : t.common.hiddenSubscribers}
+                    {item.createdAt && ` · ${t.time.created(ago(item.createdAt, "day"))}`}
+                    {item.outlierRate != null && ` · ${t.common.hitRate(Math.round(item.outlierRate * 100))}`}
                   </span>
                 </div>
                 {item.opportunityScore != null && (

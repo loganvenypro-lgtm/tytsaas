@@ -19,17 +19,12 @@ import {
   type ActiveChip,
   type Option,
 } from "@/components/explorer/explorer-ui";
+import { useI18n } from "@/components/i18n-provider";
+import type { Messages } from "@/lib/i18n";
 import {
   ALL_VIDEOS_DEFAULTS,
-  CATEGORY_OPTIONS,
   DEFAULT_FILTERS,
-  FORMAT_OPTIONS,
-  LANGUAGE_LABELS,
-  MULTIPLIER_OPTIONS,
-  PERIOD_OPTIONS,
-  SORT_OPTIONS,
-  SUBS_OPTIONS,
-  VIEWS_OPTIONS,
+  filterOptions,
   toApiParams,
   type FilterKey,
   type Filters,
@@ -50,15 +45,15 @@ interface ApiResponse {
 type Result = ApiResponse & { key: string };
 
 // Quick topics: each one is just a preset of filters.
-const TOPICS: { label: string; filters: Partial<Filters> }[] = [
-  { label: "Gaming", filters: { category: "20" } },
-  { label: "Documentaires", filters: { q: "documentary" } },
-  { label: "Minecraft", filters: { q: "minecraft" } },
-  { label: "True crime", filters: { q: "crime" } },
-  { label: "Éducation", filters: { category: "27" } },
-  { label: "Science & Tech", filters: { category: "28" } },
-  { label: "Humour", filters: { category: "23" } },
-  { label: "Sport", filters: { category: "17" } },
+const TOPICS: { key: keyof Messages["topVideos"]["topics"]; filters: Partial<Filters> }[] = [
+  { key: "gaming", filters: { category: "20" } },
+  { key: "documentaries", filters: { q: "documentary" } },
+  { key: "minecraft", filters: { q: "minecraft" } },
+  { key: "trueCrime", filters: { q: "crime" } },
+  { key: "education", filters: { category: "27" } },
+  { key: "scienceTech", filters: { category: "28" } },
+  { key: "comedy", filters: { category: "23" } },
+  { key: "sports", filters: { category: "17" } },
 ];
 
 function baselineFor(view: string): Filters {
@@ -75,6 +70,9 @@ function readFilters(params: URLSearchParams): Filters {
 }
 
 export function TopVideosExplorer() {
+  const { t, language: languageName } = useI18n();
+  const tv = t.topVideos;
+  const opts = filterOptions(t);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -149,31 +147,31 @@ export function TopVideosExplorer() {
   };
 
   const languageOptions: Option[] = [
-    { value: "all", label: "Toutes langues" },
-    ...(result?.languages ?? []).map((l) => ({ value: l.code, label: LANGUAGE_LABELS[l.code] ?? l.code.toUpperCase() })),
+    { value: "all", label: t.explorer.allLanguages },
+    ...(result?.languages ?? []).map((l) => ({ value: l.code, label: languageName(l.code) })),
   ];
   if (filters.language !== "all" && !languageOptions.some((o) => o.value === filters.language)) {
-    languageOptions.push({ value: filters.language, label: LANGUAGE_LABELS[filters.language] ?? filters.language });
+    languageOptions.push({ value: filters.language, label: languageName(filters.language) });
   }
 
   // Removable chips for every filter that differs from the tab's defaults.
   const labelOf = (options: Option[], value: string) => options.find((o) => o.value === value)?.label ?? value;
   const chipSources: [FilterKey, Option[]][] = [
-    ["format", FORMAT_OPTIONS],
-    ["period", PERIOD_OPTIONS],
-    ["category", CATEGORY_OPTIONS],
+    ["format", opts.format],
+    ["period", opts.period],
+    ["category", opts.category],
     ["language", languageOptions],
-    ["subs", SUBS_OPTIONS],
-    ["minViews", VIEWS_OPTIONS],
-    ["minMultiplier", MULTIPLIER_OPTIONS],
+    ["subs", opts.subs],
+    ["minViews", opts.views],
+    ["minMultiplier", opts.multiplier],
   ];
   const chips: ActiveChip[] = [];
-  if (filters.q) chips.push({ key: "q", label: `« ${filters.q} »` });
+  if (filters.q) chips.push({ key: "q", label: t.common.quoted(filters.q) });
   for (const [key, options] of chipSources) {
     if (filters[key] !== baseline[key]) chips.push({ key, label: labelOf(options, filters[key]) });
   }
   if (filters.view !== "all" && filters.relevant !== baseline.relevant) {
-    chips.push({ key: "relevant", label: "Toutes les vidéos (non filtrées)" });
+    chips.push({ key: "relevant", label: tv.unfilteredChip });
   }
 
   const items = result?.key === queryKey ? result.items : [];
@@ -185,23 +183,23 @@ export function TopVideosExplorer() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-1">
             <h2 className="text-2xl font-semibold tracking-tight">
-              {isAllView ? "Toute la base de vidéos" : "Top Videos"}
+              {isAllView ? tv.allTitle : tv.title}
             </h2>
             <p className="text-sm text-muted-foreground">
               {isAllView
-                ? "Toutes les vidéos collectées par le scanner, sans filtre de pertinence."
-                : "Les vidéos qui explosent en ce moment, comparées à la normale de leur chaîne."}
+                ? tv.allDescription
+                : tv.description}
             </p>
           </div>
           <Tabs value={filters.view} onValueChange={(v) => switchView(String(v))}>
             <TabsList>
               <TabsTrigger value="outliers">
                 <Flame className="size-3.5" />
-                Outliers
+                {tv.tabOutliers}
               </TabsTrigger>
               <TabsTrigger value="all">
                 <Database className="size-3.5" />
-                Toutes les vidéos
+                {tv.tabAll}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -212,14 +210,14 @@ export function TopVideosExplorer() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher une vidéo, une chaîne, une niche…"
+            placeholder={tv.searchPlaceholder}
             className="h-10 pl-9"
           />
         </div>
 
         <TopicChips
           topics={TOPICS.map((topic) => ({
-            label: topic.label,
+            label: tv.topics[topic.key],
             active: Object.entries(topic.filters).every(([k, v]) => filters[k as FilterKey] === v),
             onPick: () => {
               setSearch(topic.filters.q ?? "");
@@ -242,10 +240,10 @@ export function TopVideosExplorer() {
         <ResultsBar
           loading={loading}
           total={result?.key === queryKey ? result.total : 0}
-          noun={["vidéo trouvée", "vidéos trouvées"]}
+          noun={tv.noun}
           updatedAt={result?.updatedAt ?? null}
           sort={
-            <FilterSelect value={filters.sort} options={SORT_OPTIONS} onChange={(v) => setFilter("sort", v)} className="w-auto" />
+            <FilterSelect value={filters.sort} options={opts.sort} onChange={(v) => setFilter("sort", v)} className="w-auto" />
           }
         />
 
@@ -253,7 +251,7 @@ export function TopVideosExplorer() {
           error.error instanceof SessionExpiredError ? (
             <SessionExpiredState />
           ) : (
-            <EmptyState title="Impossible de charger les vidéos" description={error.error.message}>
+            <EmptyState title={tv.loadError} description={t.common.loadErrorHint}>
               <Button
                 variant="outline"
                 size="sm"
@@ -262,7 +260,7 @@ export function TopVideosExplorer() {
                   setReloadToken((n) => n + 1);
                 }}
               >
-                Réessayer
+                {t.common.retry}
               </Button>
             </EmptyState>
           )
@@ -281,11 +279,11 @@ export function TopVideosExplorer() {
           </Grid>
         ) : items.length === 0 ? (
           <EmptyState
-            title="Aucune vidéo ne correspond"
-            description="Élargis la période ou retire quelques filtres pour voir plus de résultats."
+            title={tv.emptyTitle}
+            description={tv.emptyDescription}
           >
             <Button variant="outline" size="sm" onClick={resetFilters}>
-              Réinitialiser les filtres
+              {t.common.resetFilters}
             </Button>
           </EmptyState>
         ) : (
@@ -299,7 +297,7 @@ export function TopVideosExplorer() {
               <div className="flex justify-center pb-4">
                 <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
                   {loadingMore && <Loader2 className="size-4 animate-spin" />}
-                  Afficher plus
+                  {t.common.showMore}
                 </Button>
               </div>
             )}

@@ -2,30 +2,28 @@ import { CheckCircle2, Database, Hammer } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import type { Messages } from "@/lib/i18n"
+import { getT } from "@/lib/i18n/server"
+
+// Each placeholder page is named like its sidebar entry (t.nav.items) and described in t.placeholder.pages
+export type PlaceholderPage = keyof Messages["placeholder"]["pages"] & keyof Messages["nav"]["items"]
 
 /**
  * A sidebar page whose feature isn't built yet: what it's for, what it will do,
  * and which data already in the database will feed it.
  */
-export function PagePlaceholder({
-  title,
-  description,
-  features,
-  data,
-}: {
-  title: string
-  description: string
-  features: string[]
-  data?: string
-}) {
+export async function PagePlaceholder({ page }: { page: PlaceholderPage }) {
+  const t = await getT()
+  const { description, features, data } = t.placeholder.pages[page]
+
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 md:px-6">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">{t.nav.items[page]}</h2>
           <Badge variant="outline">
             <Hammer />
-            En construction
+            {t.placeholder.badge}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">{description}</p>
@@ -33,8 +31,8 @@ export function PagePlaceholder({
 
       <Card>
         <CardHeader>
-          <CardTitle>Ce que cette page va faire</CardTitle>
-          <CardDescription>Le contenu arrive avec le backend de cette fonctionnalité.</CardDescription>
+          <CardTitle>{t.placeholder.title}</CardTitle>
+          <CardDescription>{t.placeholder.description}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <ul className="flex flex-col gap-2">

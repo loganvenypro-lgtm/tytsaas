@@ -1,4 +1,5 @@
 import { sql } from "../lib/sql.js";
+import { VIDEO_COLUMNS, toVideoJson } from "../lib/videoRows.js";
 
 const PERIOD_HOURS = {
   "24h": 24,
@@ -63,12 +64,7 @@ export async function topVideos(req, res) {
 
   const [rows, [{ total }], languages, [lastScan]] = await Promise.all([
     sql`
-      SELECT
-        v.youtube_video_id, v.title, v.thumbnail_url, v.published_at, v.view_count, v.like_count,
-        v.comment_count, v.duration_formatted, v.is_short, v.outlier_multiplier, v.views_per_hour,
-        v.relevance_score, v.category_id, v.language,
-        c.youtube_channel_id, c.name AS channel_name, c.handle, c.thumbnail_url AS channel_avatar,
-        c.subscriber_count, c.country
+      SELECT ${VIDEO_COLUMNS}
       FROM videos v
       JOIN channels c ON c.id = v.channel_id
       WHERE ${where}
@@ -90,38 +86,8 @@ export async function topVideos(req, res) {
     sql`SELECT max(finished_at) AS at FROM scan_runs WHERE status = 'ok'`,
   ]);
 
-  const items = rows.map((r) => {
-    const views = Number(r.view_count ?? 0);
-    const multiplier = r.outlier_multiplier != null ? Number(r.outlier_multiplier) : null;
-    return {
-      id: r.youtube_video_id,
-      title: r.title,
-      thumbnail: r.thumbnail_url || `https://i.ytimg.com/vi/${r.youtube_video_id}/hqdefault.jpg`,
-      publishedAt: new Date(r.published_at).toISOString(),
-      views,
-      likes: r.like_count != null ? Number(r.like_count) : null,
-      comments: r.comment_count != null ? Number(r.comment_count) : null,
-      duration: r.duration_formatted ?? null,
-      isShort: Boolean(r.is_short),
-      multiplier,
-      usualViews: multiplier && multiplier > 0 ? Math.round(views / multiplier) : null,
-      viewsPerHour: r.views_per_hour != null ? Math.round(Number(r.views_per_hour)) : null,
-      score: r.relevance_score != null ? Number(r.relevance_score) : null,
-      categoryId: r.category_id != null ? Number(r.category_id) : null,
-      language: r.language ?? null,
-      channel: {
-        id: r.youtube_channel_id,
-        name: r.channel_name,
-        handle: r.handle ?? null,
-        avatar: r.channel_avatar ?? null,
-        subscribers: r.subscriber_count != null ? Number(r.subscriber_count) : null,
-        country: r.country ?? null,
-      },
-    };
-  });
-
   res.json({
-    items,
+    items: rows.map(toVideoJson),
     total,
     page,
     pageSize: PAGE_SIZE,

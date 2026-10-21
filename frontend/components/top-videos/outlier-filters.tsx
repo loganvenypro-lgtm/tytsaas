@@ -4,16 +4,8 @@ import { CalendarDays, Eye, Flame, Globe, LayoutGrid, Sparkles, Users } from "lu
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { FilterSelect, type Option } from "@/components/explorer/explorer-ui";
-import {
-  CATEGORY_OPTIONS,
-  FORMAT_OPTIONS,
-  MULTIPLIER_OPTIONS,
-  PERIOD_OPTIONS,
-  SUBS_OPTIONS,
-  VIEWS_OPTIONS,
-  type FilterKey,
-  type Filters,
-} from "./filter-options";
+import { useI18n } from "@/components/i18n-provider";
+import { filterOptions, type FilterKey, type Filters } from "./filter-options";
 
 const iconClass = "size-3.5 text-muted-foreground";
 
@@ -26,9 +18,12 @@ export function OutlierFilters({
   languageOptions: Option[];
   onChange: (key: FilterKey, value: string) => void;
 }) {
+  const { t } = useI18n();
+  const opts = filterOptions(t);
+
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-medium text-muted-foreground">Filtrer par</span>
+      <span className="text-xs font-medium text-muted-foreground">{t.explorer.filterBy}</span>
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
         <ToggleGroup
           variant="outline"
@@ -37,7 +32,7 @@ export function OutlierFilters({
           onValueChange={(v: string[]) => v[0] && onChange("format", v[0])}
           className="col-span-2"
         >
-          {FORMAT_OPTIONS.map((o) => (
+          {opts.format.map((o) => (
             <ToggleGroupItem
               key={o.value}
               value={o.value}
@@ -49,13 +44,13 @@ export function OutlierFilters({
         </ToggleGroup>
         <FilterSelect
           value={filters.period}
-          options={PERIOD_OPTIONS}
+          options={opts.period}
           onChange={(v) => onChange("period", v)}
           icon={<CalendarDays className={iconClass} />}
         />
         <FilterSelect
           value={filters.category}
-          options={CATEGORY_OPTIONS}
+          options={opts.category}
           onChange={(v) => onChange("category", v)}
           icon={<LayoutGrid className={iconClass} />}
         />
@@ -67,19 +62,19 @@ export function OutlierFilters({
         />
         <FilterSelect
           value={filters.subs}
-          options={SUBS_OPTIONS}
+          options={opts.subs}
           onChange={(v) => onChange("subs", v)}
           icon={<Users className={iconClass} />}
         />
         <FilterSelect
           value={filters.minViews}
-          options={VIEWS_OPTIONS}
+          options={opts.views}
           onChange={(v) => onChange("minViews", v)}
           icon={<Eye className={iconClass} />}
         />
         <FilterSelect
           value={filters.minMultiplier}
-          options={MULTIPLIER_OPTIONS}
+          options={opts.multiplier}
           onChange={(v) => onChange("minMultiplier", v)}
           icon={<Flame className={iconClass} />}
         />
@@ -91,7 +86,7 @@ export function OutlierFilters({
             className="gap-1.5 px-2.5 data-[pressed]:bg-primary data-[pressed]:text-primary-foreground"
           >
             <Sparkles className="size-3.5" />
-            Pertinentes uniquement
+            {t.filters.relevantOnly}
           </Toggle>
         )}
       </div>
