@@ -22,7 +22,8 @@ export async function overview(req, res) {
       (SELECT count(*) FROM videos)::int AS videos,
       (SELECT count(*) FROM channel_alerts)::int AS alerts,
       (SELECT count(*) FROM (
-        SELECT 1 FROM video_variants GROUP BY youtube_video_id, kind HAVING count(*) > 1
+        SELECT 1 FROM video_variants WHERE NOT (kind = 'thumbnail' AND value = '0')
+        GROUP BY youtube_video_id, kind HAVING count(*) > 1
       ) t)::int AS "abTests"`;
 
   const recentUsers = await sql`
@@ -148,7 +149,8 @@ export async function abTests(req, res) {
   const base = sql`
     WITH tests AS (
       SELECT youtube_video_id, kind, count(*)::int AS variants, max(first_seen_at) AS last_change
-      FROM video_variants WHERE true ${kindFilter}
+      -- ETag "0" is the CDN's answer for an auto-generated frame, not a version
+      FROM video_variants WHERE NOT (kind = 'thumbnail' AND value = '0') ${kindFilter}
       GROUP BY youtube_video_id, kind HAVING count(*) > 1
     )
     SELECT t.*, v.title, v.thumbnail_url, v.view_count, v.outlier_multiplier, v.published_at,
@@ -165,9 +167,12 @@ export async function abTests(req, res) {
   const variants = ids.length
     ? await sql`
         SELECT youtube_video_id, kind, value, set_at, first_seen_at, last_seen_at, image IS NOT NULL AS has_image
-        FROM video_variants WHERE youtube_video_id = ANY(${ids}) ${kindFilter}
+        FROM video_variants
+        WHERE youtube_video_id = ANY(${ids}) AND NOT (kind = 'thumbnail' AND value = '0') ${kindFilter}
         ORDER BY COALESCE(set_at, first_seen_at)`
     : [];
+  // The newest version is still the one on YouTube: shown live until the worker saves it.
+  const latest = new Map(variants.map((v) => [`${v.youtube_video_id}:${v.kind}`, v.value]));
 
   res.json({
     total,
@@ -192,7 +197,9 @@ export async function abTests(req, res) {
           lastSeenAt: v.last_seen_at,
           image: v.has_image
             ? `/api/admin/thumbnails?video=${encodeURIComponent(v.youtube_video_id)}&etag=${encodeURIComponent(v.value)}`
-            : null,
+            : v.kind === "thumbnail" && latest.get(`${v.youtube_video_id}:${v.kind}`) === v.value
+              ? `https://i.ytimg.com/vi/${encodeURIComponent(v.youtube_video_id)}/mqdefault.jpg`
+              : null,
         })),
     })),
   });
