@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useOptionLabels } from "@/components/explorer/filter-spec";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
+import { SaveToFolderMenu } from "@/components/folders/save-to-folder-menu";
 import { AbHistorySheet } from "./ab-history-sheet";
 
 export interface OutlierVideo {
@@ -106,6 +107,25 @@ export function OutlierCard({
             </span>
           )}
         </a>
+        <div className="absolute top-9 right-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-data-[popup-open]:opacity-100 [@media(hover:none)]:opacity-100">
+          <SaveToFolderMenu
+            variant="overlay"
+            item={{
+              type: "video",
+              id: video.id,
+              snapshot: {
+                title: video.title,
+                thumbnail: video.thumbnail,
+                channelId: video.channel.id,
+                channelName: video.channel.name,
+                views: video.views,
+                multiplier: video.multiplier,
+                publishedAt: video.publishedAt,
+                isShort: video.isShort,
+              },
+            }}
+          />
+        </div>
         {hasAbTest && (
           <Tooltip>
             <TooltipTrigger

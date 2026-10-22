@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useOptionLabels } from "@/components/explorer/filter-spec";
 import { useI18n } from "@/components/i18n-provider";
 import { FilterBadge } from "@/components/top-videos/outlier-card";
+import { SaveToFolderMenu } from "@/components/folders/save-to-folder-menu";
 import { cn } from "@/lib/utils";
 
 export interface TrendChannel {
@@ -264,10 +265,22 @@ export function ChannelCard({
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:flex">
-        <Button variant="outline" className="sm:flex-1" onClick={onSimilar}>
+        <Button variant="outline" className="col-span-2 sm:flex-1" onClick={onSimilar}>
           <Users className="size-4" />
           {tc.similar}
         </Button>
+        <SaveToFolderMenu
+          item={{
+            type: "channel",
+            id: channel.id,
+            snapshot: {
+              title: channel.name,
+              thumbnail: channel.avatar,
+              handle: channel.handle,
+              subscribers: channel.subscribers,
+            },
+          }}
+        />
         <Button
           variant="ghost"
           nativeButton={false}

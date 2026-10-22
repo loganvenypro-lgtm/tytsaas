@@ -1,5 +1,5 @@
-import { PagePlaceholder } from "@/components/page-placeholder"
+import { FoldersView } from "@/components/folders/folders-view"
 
 export default function FoldersPage() {
-  return <PagePlaceholder page="folders" />
+  return <FoldersView />
 }
