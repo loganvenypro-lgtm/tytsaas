@@ -5,12 +5,18 @@ import { getSessionCookie } from "better-auth/cookies"
 // with requireSession() before rendering anything private.
 export function proxy(request: NextRequest) {
   if (!getSessionCookie(request)) {
-    return NextResponse.redirect(new URL("/login", request.url))
+    // Signed-out visitors land on the public page, deep links go to the sign-in and back
+    const { pathname, search } = request.nextUrl
+    if (pathname === "/") return NextResponse.redirect(new URL("/welcome", request.url))
+    const login = new URL("/login", request.url)
+    login.searchParams.set("next", pathname + search)
+    return NextResponse.redirect(login)
   }
   return NextResponse.next()
 }
 
 export const config = {
-  // Every page except the auth pages, the API (proxied to the backend) and static files
-  matcher: ["/((?!login|signup|api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  // Every page except the auth pages, the landing pages, invitations (they explain how to sign in),
+  // the API (proxied to the backend), PostHog (/ingest) and static files
+  matcher: ["/((?!login|signup|welcome2|welcome|invite|api|ingest|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 }

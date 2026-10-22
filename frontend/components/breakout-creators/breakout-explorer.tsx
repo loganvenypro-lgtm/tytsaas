@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,10 +17,11 @@ import {
 } from "@/components/explorer/explorer-ui";
 import { localize, useFilterSpec, useUrlFilters } from "@/components/explorer/filter-spec";
 import { SpecFilterSection, topOptions, useSpecChips } from "@/components/explorer/spec-filters";
+import { InfiniteScroll } from "@/components/explorer/infinite-scroll";
 import { useI18n } from "@/components/i18n-provider";
 import type { Messages } from "@/lib/i18n";
 import { ChannelCard, type TrendChannel } from "./channel-card";
-import { SimilarChannelsSheet } from "./similar-channels-sheet";
+import { SimilarChannelsDialog } from "./similar-channels-dialog";
 
 type Variant = "trends" | "finder";
 
@@ -100,7 +101,7 @@ export function BreakoutExplorer({ variant = "trends" }: { variant?: Variant }) 
   }, [queryKey, reloadToken]);
 
   const loadMore = async () => {
-    if (!result) return;
+    if (!result || loadingMore) return;
     setLoadingMore(true);
     try {
       const data = await fetchJson<ApiResponse>(`/api/channels/breakout?${filters.apiParams(result.page + 1)}`);
@@ -220,19 +221,12 @@ export function BreakoutExplorer({ variant = "trends" }: { variant?: Variant }) 
                 />
               ))}
             </div>
-            {result?.hasMore && (
-              <div className="flex justify-center pb-4">
-                <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
-                  {loadingMore && <Loader2 className="size-4 animate-spin" />}
-                  {t.common.showMore}
-                </Button>
-              </div>
-            )}
+            <InfiniteScroll hasMore={!!result?.hasMore} loading={loadingMore} onLoadMore={loadMore} />
           </>
         )}
       </div>
 
-      <SimilarChannelsSheet channel={similarOf} onOpenChange={(open) => !open && setSimilarOf(null)} />
+      <SimilarChannelsDialog channel={similarOf} onOpenChange={(open) => !open && setSimilarOf(null)} />
     </div>
   );
 }

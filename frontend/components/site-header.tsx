@@ -7,6 +7,7 @@ import { ChevronRight } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useI18n } from "@/components/i18n-provider"
+import { ModeToggle } from "@/components/mode-toggle"
 import { navTrail } from "@/lib/nav"
 
 /** Top bar of the signed-in pages: where the page sits in the sidebar ("Trending › Top Videos"). */
@@ -35,6 +36,9 @@ export function SiteHeader() {
             ))}
           </div>
         )}
+        <div className="ml-auto">
+          <ModeToggle />
+        </div>
       </div>
     </header>
   )

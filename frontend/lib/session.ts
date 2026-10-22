@@ -10,6 +10,8 @@ export type SessionUser = {
   role?: string | null
   plan?: string | null
   createdAt?: string
+  /** Null until /onboarding is finished or skipped. */
+  onboardedAt?: string | null
 }
 
 type Session = {

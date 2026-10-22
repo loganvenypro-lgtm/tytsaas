@@ -91,6 +91,16 @@ export const CONFIG = {
   // Extra seed queries on top of the taxonomy's per-niche queries.
   discoverySeedQueries: list("DISCOVERY_QUERIES", ""),
 
+  // Terminated channels: suspects (failing RSS) confirmed with channels.list, 50 ids per unit.
+  terminatedIntervalHours: num("TERMINATED_INTERVAL_HOURS", 6),
+  terminatedMaxCalls: num("TERMINATED_MAX_CALLS", 20),
+  // Suspect after this many RSS 404s in a row, or without a feed read for this long.
+  terminatedMinRssErrors: num("TERMINATED_MIN_RSS_ERRORS", 1),
+  terminatedStaleRssHours: num("TERMINATED_STALE_RSS_HOURS", 72),
+  // A suspect that answered isn't checked again before this; terminated channels are rechecked this often.
+  terminatedSuspectCooldownHours: num("TERMINATED_SUSPECT_COOLDOWN_HOURS", 24),
+  terminatedRecheckHours: num("TERMINATED_RECHECK_HOURS", 72),
+
   // Estimated monetization (local, no quota).
   monetizationIntervalHours: num("MONETIZATION_INTERVAL_HOURS", 6),
 

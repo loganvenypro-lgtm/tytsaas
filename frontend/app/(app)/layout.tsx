@@ -1,11 +1,16 @@
+import { redirect } from "next/navigation"
+
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { WeeklyNewsDialog } from "@/components/weekly-news-dialog"
 import { requireSession } from "@/lib/session"
 
 /** Shell of every signed-in page: sidebar, header, and a verified session. */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = await requireSession()
+  // New accounts answer the onboarding first; existing ones were marked as onboarded
+  if (!user.onboardedAt) redirect("/onboarding")
 
   return (
     <SidebarProvider
@@ -21,6 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <SiteHeader />
         {children}
       </SidebarInset>
+      <WeeklyNewsDialog userId={user.id} name={user.name} />
     </SidebarProvider>
   )
 }

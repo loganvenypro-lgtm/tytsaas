@@ -3,11 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Eye, Flame, X } from "lucide-react";
+import { ArrowLeft, Eye, Flame, Lightbulb, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState, SessionExpiredState, SessionExpiredError, fetchJson } from "@/components/explorer/explorer-ui";
@@ -16,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { FOLDERS_CHANGED_EVENT, type SavedItem } from "@/lib/saved-folders";
 import { FolderActionsMenu } from "./folder-actions-menu";
 import { removeFromFolder } from "./folders-client";
+import { IdeationBoard, VideoSummary } from "./ideation-board";
+import { VideoNotes, type NotesUpdater } from "./video-notes";
 
 interface FolderData {
   folder: { id: string; name: string; createdAt: string; updatedAt: string };
@@ -28,7 +31,7 @@ export function FolderDetailView({ folderId }: { folderId: string }) {
   const router = useRouter();
   const [data, setData] = React.useState<FolderData | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
-  const [filter, setFilter] = React.useState<"all" | "video" | "channel">("all");
+  const [filter, setFilter] = React.useState<"all" | "video" | "channel" | "ideation">("all");
 
   React.useEffect(() => {
     const load = () =>
@@ -52,9 +55,20 @@ export function FolderDetailView({ folderId }: { folderId: string }) {
     }
   };
 
+  const setNotes = React.useCallback<NotesUpdater>((videoId, update) => {
+    setData(
+      (prev) =>
+        prev && {
+          ...prev,
+          items: prev.items.map((i) => (i.type === "video" && i.id === videoId ? { ...i, notes: update(i.notes ?? []) } : i)),
+        },
+    );
+  }, []);
+
   const items = data?.items.filter((i) => filter === "all" || i.type === filter) ?? [];
   const videoCount = data?.items.filter((i) => i.type === "video").length ?? 0;
   const channelCount = (data?.items.length ?? 0) - videoCount;
+  const noteCount = data?.items.reduce((sum, i) => sum + (i.notes?.length ?? 0), 0) ?? 0;
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-5 px-4 py-6 md:px-6">
@@ -91,11 +105,20 @@ export function FolderDetailView({ folderId }: { folderId: string }) {
                 <TabsTrigger value="all">{t.folders.all(data.items.length)}</TabsTrigger>
                 <TabsTrigger value="video">{t.folders.videosTab(videoCount)}</TabsTrigger>
                 <TabsTrigger value="channel">{t.folders.channelsTab(channelCount)}</TabsTrigger>
+                <TabsTrigger value="ideation">
+                  <Lightbulb />
+                  {t.ideation.tab(noteCount)}
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
 
-          {items.length === 0 ? (
+          {filter === "ideation" ? (
+            <>
+              <p className="-mt-2 max-w-2xl text-sm text-muted-foreground">{t.ideation.intro}</p>
+              <IdeationBoard folderId={folderId} items={data.items} onNotesChange={setNotes} />
+            </>
+          ) : items.length === 0 ? (
             <EmptyState
               title={data.items.length === 0 ? t.folders.folderEmpty : t.folders.categoryEmpty}
               description={t.folders.folderEmptyHint}
@@ -108,7 +131,13 @@ export function FolderDetailView({ folderId }: { folderId: string }) {
             <ItemGrid>
               {items.map((item) =>
                 item.type === "video" ? (
-                  <SavedVideoCard key={`v-${item.id}`} item={item} onRemove={() => remove(item)} />
+                  <SavedVideoCard
+                    key={`v-${item.id}`}
+                    folderId={folderId}
+                    item={item}
+                    onRemove={() => remove(item)}
+                    onNotesChange={setNotes}
+                  />
                 ) : (
                   <SavedChannelCard key={`c-${item.id}`} item={item} onRemove={() => remove(item)} />
                 ),
@@ -141,7 +170,17 @@ function RemoveButton({ onRemove }: { onRemove: () => void }) {
   );
 }
 
-function SavedVideoCard({ item, onRemove }: { item: SavedItem; onRemove: () => void }) {
+function SavedVideoCard({
+  folderId,
+  item,
+  onRemove,
+  onNotesChange,
+}: {
+  folderId: string;
+  item: SavedItem;
+  onRemove: () => void;
+  onNotesChange: NotesUpdater;
+}) {
   const { t, compact } = useI18n();
   const s = item.snapshot;
   const url = `https://www.youtube.com/watch?v=${item.id}`;
@@ -199,8 +238,43 @@ function SavedVideoCard({ item, onRemove }: { item: SavedItem; onRemove: () => v
             )}
           </span>
         </div>
+        <NotesSheet folderId={folderId} item={item} onNotesChange={onNotesChange} />
       </div>
     </Card>
+  );
+}
+
+/** The "Ideas" button of a video card and the side sheet where its notes are written. */
+function NotesSheet({ folderId, item, onNotesChange }: { folderId: string; item: SavedItem; onNotesChange: NotesUpdater }) {
+  const { t } = useI18n();
+  const [open, setOpen] = React.useState(false);
+  const notes = item.notes ?? [];
+  return (
+    <>
+      <Button
+        variant={notes.length ? "secondary" : "ghost"}
+        size="xs"
+        className={cn("-ml-0.5 w-fit", !notes.length && "text-muted-foreground")}
+        onClick={() => setOpen(true)}
+      >
+        <Lightbulb className={cn(notes.length > 0 && "text-amber-500")} />
+        {t.ideation.cardButton(notes.length)}
+      </Button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-md">
+          <SheetHeader className="gap-1 border-b pr-12">
+            <SheetTitle className="text-base">{t.ideation.sheetTitle}</SheetTitle>
+            <SheetDescription>{t.ideation.sheetDescription}</SheetDescription>
+          </SheetHeader>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+            <div className="overflow-hidden rounded-lg border">
+              <VideoSummary video={item} />
+            </div>
+            <VideoNotes folderId={folderId} videoId={item.id} notes={notes} onNotesChange={onNotesChange} />
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 

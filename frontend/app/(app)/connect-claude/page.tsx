@@ -1,5 +1,5 @@
-import { PagePlaceholder } from "@/components/page-placeholder"
+import { ClaudeConnect } from "@/components/connect-claude/claude-connect"
 
 export default function ConnectClaudePage() {
-  return <PagePlaceholder page="connectClaude" />
+  return <ClaudeConnect />
 }

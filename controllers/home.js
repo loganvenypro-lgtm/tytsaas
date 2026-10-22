@@ -5,6 +5,16 @@ import { VIDEO_COLUMNS, toVideoJson } from "../lib/videoRows.js";
 
 const num = (value) => (value != null ? Number(value) : null);
 
+const DAY = 86_400_000;
+
+/** Start of "since your last visit": the `since` query, kept within the last 30 days, else 24 hours ago. */
+function sinceDate(value) {
+  const now = Date.now();
+  const at = value ? new Date(String(value)).getTime() : NaN;
+  if (Number.isNaN(at)) return new Date(now - DAY);
+  return new Date(Math.min(now, Math.max(now - 30 * DAY, at)));
+}
+
 /**
  * Personalised home: the creator's channel (chosen at onboarding), hits in their
  * niche, what their competitors are doing, and the pulse of the whole database.
@@ -72,7 +82,9 @@ export async function home(req, res) {
       + v.relevance_score DESC
     LIMIT 8`;
 
-  const [forYou, competitors, competitorHits, [deltas], [pulse], [lastScan]] = await Promise.all([
+  const since = sinceDate(req.query.since);
+
+  const [forYou, competitors, competitorHits, [deltas], [pulse], [lastScan], [changes], [sinceDeltas]] = await Promise.all([
     // Hits in my niche, or without a classified channel yet, the best hits of the week
     nicheId
       ? nicheHits()
@@ -138,6 +150,34 @@ export async function home(req, res) {
         (SELECT count(*) FROM channels WHERE discovered_at > now() - interval '24 hours')::int AS new_channels_24h,
         (SELECT count(*) FROM channels WHERE rss_error_count < 5)::int AS channels`,
     sql`SELECT max(finished_at) AS at FROM scan_runs WHERE status = 'ok'`,
+    // What changed since the last visit: hits in my niche (else everywhere),
+    // my competitors' uploads, channels that appeared in my niche, my own uploads
+    sql`
+      SELECT
+        (SELECT count(*) FROM videos v
+          WHERE v.published_at > ${since} AND v.outlier_multiplier >= 3 AND v.relevance_score IS NOT NULL
+            AND v.channel_id <> ${myInternalId}
+            ${nicheId ? sql`AND v.niche = ${nicheId}` : sql``})::int AS outliers,
+        (SELECT count(*) FROM (SELECT c.* ${competitorSource}) c JOIN videos v ON v.channel_id = c.id
+          WHERE v.published_at > ${since})::int AS competitor_uploads,
+        (SELECT count(*) FROM (SELECT c.* ${competitorSource}) c JOIN videos v ON v.channel_id = c.id
+          WHERE v.published_at > ${since} AND v.outlier_multiplier >= 2)::int AS competitor_hits,
+        ${
+          nicheId
+            ? sql`(SELECT count(*) FROM channels WHERE niche = ${nicheId} AND discovered_at > ${since} AND rss_error_count < 5)::int`
+            : sql`(SELECT count(*) FROM channels WHERE discovered_at > ${since} AND rss_error_count < 5)::int`
+        } AS new_channels,
+        (SELECT count(*) FROM videos WHERE channel_id = ${myInternalId} AND published_at > ${since})::int AS my_uploads`,
+    myChannelId
+      ? sql`
+          SELECT
+            (array_agg(total_views ORDER BY captured_at DESC))[1]
+              - (array_agg(total_views ORDER BY captured_at DESC) FILTER (WHERE captured_at <= ${since}))[1] AS views,
+            (array_agg(subscriber_count ORDER BY captured_at DESC))[1]
+              - (array_agg(subscriber_count ORDER BY captured_at DESC) FILTER (WHERE captured_at <= ${since}))[1] AS subs
+          FROM channel_stat_snapshots
+          WHERE youtube_channel_id = ${myChannelId} AND captured_at > ${since}::timestamptz - interval '3 days'`
+      : Promise.resolve([undefined]),
   ]);
 
   const latest = myVideos[0];
@@ -203,5 +243,15 @@ export async function home(req, res) {
       channels: pulse.channels,
     },
     updatedAt: lastScan?.at ? new Date(lastScan.at).toISOString() : null,
+    sinceLastVisit: {
+      since: since.toISOString(),
+      outliers: changes.outliers,
+      competitorUploads: changes.competitor_uploads,
+      competitorHits: changes.competitor_hits,
+      newChannels: changes.new_channels,
+      myUploads: changes.my_uploads,
+      mySubs: num(sinceDeltas?.subs),
+      myViews: num(sinceDeltas?.views),
+    },
   });
 }

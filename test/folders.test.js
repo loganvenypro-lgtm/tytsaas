@@ -1,7 +1,7 @@
 // Validation of folder names and saved items (lib/savedFolders.js).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseFolderName, parseItem, FOLDER_NAME_MAX } from "../lib/savedFolders.js";
+import { parseFolderName, parseItem, parseNote, FOLDER_NAME_MAX, NOTE_BODY_MAX } from "../lib/savedFolders.js";
 
 test("folder names: trimmed, 1 to 80 characters", () => {
   assert.equal(parseFolderName("  Idées  "), "Idées");
@@ -29,4 +29,15 @@ test("items: known types and ids only, unknown or empty snapshot fields dropped"
     id: "UCabcdef123",
     snapshot: { title: "UCabcdef123" },
   });
+});
+
+test("notes: known kinds, trimmed body, partial edits", () => {
+  assert.deepEqual(parseNote({ body: "  Une idée  " }), { kind: "idea", body: "Une idée" });
+  assert.deepEqual(parseNote({ kind: "hook", body: "Et si…" }), { kind: "hook", body: "Et si…" });
+  assert.equal(parseNote({ kind: "script", body: "x" }), null);
+  assert.equal(parseNote({ body: "   " }), null);
+  assert.equal(parseNote({ kind: "idea" }), null);
+  assert.equal(parseNote({ body: "x".repeat(NOTE_BODY_MAX + 1) }), null);
+  assert.deepEqual(parseNote({ kind: "title" }, { partial: true }), { kind: "title" });
+  assert.equal(parseNote({}, { partial: true }), null);
 });

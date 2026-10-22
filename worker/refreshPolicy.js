@@ -12,6 +12,10 @@
  *   < 30 d                2 d if >= 3x normal, else 5 d
  *   older                25 d (API data policy: refreshed or deleted within 30 days)
  *
+ * The videos of a user's own channel ("user".youtube_channel_id) older than
+ * 7 days are refreshed daily instead: "Ma chaîne" measures which old
+ * videos still gain views (about 1 unit per 50 videos per day and per channel).
+ *
  * "Live from RSS": the channel feed gave the video's views recently (hot channels
  * are read hourly). Views, multiplier and velocity then stay current for free; the
  * API call only brings likes, comments and metadata, so it can wait longer.
@@ -41,6 +45,7 @@ export const refreshIntervalHours = sql`
           case when v.rss_views_at > now() - interval '6 hours' then 12 else 6 end
         else case when v.rss_views_at > now() - interval '6 hours' then 48 else 24 end
       end
+    when mc.youtube_channel_id is not null then 24
     when v.published_at > now() - interval '30 days' then
       case when v.outlier_multiplier >= 3 then 48 else 120 end
     else 600
@@ -49,7 +54,9 @@ export const refreshIntervalHours = sql`
 export const refreshFrom = sql`
   videos v
   join channels c on c.id = v.channel_id
-  left join tracked_channels tc on tc.channel_id = c.youtube_channel_id`;
+  left join tracked_channels tc on tc.channel_id = c.youtube_channel_id
+  left join (select distinct youtube_channel_id from "user" where youtube_channel_id is not null) mc
+    on mc.youtube_channel_id = c.youtube_channel_id`;
 
 /**
  * Quota the current database needs per day to keep every refresh on schedule,
@@ -62,7 +69,7 @@ export async function projectDailyDemand() {
       count(*) filter (where i.hours = 0)::int as never_refreshed
     from ${refreshFrom}
     cross join lateral (select ${refreshIntervalHours} as hours) i
-    where v.published_at <= now()`;
+    where v.published_at <= now() and c.terminated_at is null`;
   const [channels] = await sql`select count(*)::int as active from channels where rss_error_count < 5`;
 
   const videoUnits = row.video_refreshes / BATCH;

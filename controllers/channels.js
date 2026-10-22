@@ -1,7 +1,8 @@
 import { sql } from "../lib/sql.js";
-import { NICHE_BY_ID } from "../lib/taxonomy/index.js";
+import { FORMAT_BY_ID, NICHES, NICHE_BY_ID } from "../lib/taxonomy/index.js";
+import { channelProfile } from "../lib/channelProfile.js";
 import { YPP_STATUSES } from "../lib/taxonomy/monetization.js";
-import { mode, topKeywords } from "../lib/titleKeywords.js";
+import { topKeywords } from "../lib/titleKeywords.js";
 import { VIDEO_COLUMNS, toVideoJson } from "../lib/videoRows.js";
 import { applyFilters, applySort, parsePage } from "../lib/filterSpec.js";
 import { nicheOptions, subNicheOptions, formatOptions, languageOptions, categoryOptions } from "./videos.js";
@@ -472,101 +473,326 @@ export async function breakout(req, res) {
   });
 }
 
+const SUB_NICHE_BY_ID = Object.fromEntries(NICHES.flatMap((n) => n.subNiches.map((s) => [s.id, { ...s, niche: n.id }])));
+const SIMILAR_LIMIT = 12;
+const SIMILAR_VIDEOS = 8;
+// Channels scored in full (each on its last 30 videos), out of the niche and term matches.
+const SIMILAR_POOL = 400;
+
+/** { id: share } → [{ id, label, share, niche? }] with the labels the frontend shows (niche: a sub-niche's parent). */
+const labelled = (shares, byId) =>
+  Object.entries(shares)
+    .filter(([id]) => byId[id])
+    .map(([id, share]) => ({ id, label: byId[id].label, share, niche: byId[id].niche }));
+
 /**
- * Channels similar to this one. With a classified niche (worker classifier), the
- * candidates are the channels of that niche, ranked by sub-niche, language, main
- * video style, Shorts/long-form mix, size and how many of their titles share this
- * channel's keywords. Without one, the keywords alone pick the candidates.
+ * Channels and videos similar to this one. The channel is first read into a search
+ * profile (lib/channelProfile.js: how its videos spread across niches, sub-niches,
+ * styles and title hooks, its format, language and its dominant title terms weighted
+ * by IDF, hype words left out). Candidates are the channels of its main niches plus
+ * those whose titles share its terms; each one's last 30 videos are scored against
+ * the profile in SQL (topic, sub-topic and style first, then term overlap, then
+ * language, Shorts/long-form mix, duration and size). Postgres only, no YouTube quota.
  */
 export async function similar(req, res) {
   const { channelId } = req.params;
 
   const [channel] = await sql`
-    SELECT id, name, niche, sub_niche, niche_confidence, lang, primary_format, short_share, subscriber_count
+    SELECT id, name, handle, description, niche, sub_niche, niche_confidence, lang, primary_format, short_share, subscriber_count
     FROM channels WHERE youtube_channel_id = ${channelId}`;
   if (!channel) return res.status(404).json({ error: "Chaîne introuvable." });
 
-  const titles = await sql`
-    SELECT title, category_id, lang
-    FROM videos
-    WHERE channel_id = ${channel.id}
-    ORDER BY published_at DESC
-    LIMIT 40`;
-  const keywords = topKeywords(titles.map((t) => t.title), 12);
-  const query = keywords.length ? keywords.join(" | ") : null;
-  const niche = channel.niche && NICHE_BY_ID[channel.niche] ? channel.niche : null;
-  if (!niche && !query) return res.json({ keywords: [], niche: null, items: [] });
+  const profile = await channelProfile(channel);
+  const topNiches = Object.keys(profile.niches).slice(0, 2);
+  const queries = profile.terms.map((t) => t.query);
+  const weights = profile.terms.map((t) => t.weight);
+  const shares = profile.terms.map((t) => t.share);
+  const profileJson = {
+    niches: labelled(profile.niches, NICHE_BY_ID).slice(0, 3),
+    subNiches: labelled(profile.subNiches, SUB_NICHE_BY_ID).slice(0, 3),
+    formats: labelled(profile.formats, FORMAT_BY_ID).slice(0, 2),
+    language: profile.lang,
+    shortShare: profile.shortShare,
+    medianDuration: profile.medianDuration,
+  };
+  if (!topNiches.length && !queries.length) return res.json({ keywords: [], niche: null, profile: profileJson, items: [], videos: [] });
 
-  const category = mode(titles.map((t) => t.category_id));
-  const language = channel.lang ?? mode(titles.map((t) => t.lang));
+  const json = (shares) => sql.json(shares);
+  const top = (shares) => Math.max(...Object.values(shares), 0) || 1;
+  const norm = (shares) => Math.hypot(...Object.values(shares)) || 1;
+  const anyTerm = queries.map((q) => `(${q})`).join(" | ");
   const subs = Math.max(Number(channel.subscriber_count ?? 0), 1);
-
-  // Titles of the last year matching the keywords, per channel.
-  const matches = query
-    ? sql`
-        SELECT v.channel_id,
-          least(3, sum(ts_rank(to_tsvector('simple', v.title), to_tsquery('simple', ${query})))::float8 * 10) AS relevance,
-          count(*)::int AS matching_videos
-        FROM videos v
-        WHERE to_tsvector('simple', v.title) @@ to_tsquery('simple', ${query})
-          AND v.channel_id <> ${channel.id}
-          AND v.published_at > now() - interval '365 days'
-        GROUP BY v.channel_id`
-    : sql`SELECT NULL::varchar AS channel_id, 0::float8 AS relevance, 0 AS matching_videos WHERE false`;
+  const longForm = profile.shortShare < 0.5;
 
   const rows = await sql`
-    WITH matches AS (${matches})
-    SELECT
-      c.youtube_channel_id, c.name, c.handle, c.thumbnail_url, c.subscriber_count, c.country,
-      c.channel_created_at, c.outlier_rate, c.opportunity_score, c.trend_score, c.niche, c.sub_niche,
-      coalesce(m.matching_videos, 0) AS matching_videos,
-      coalesce(m.relevance, 0)
-      ${
-        niche
-          ? sql`
-            + (CASE WHEN ${channel.sub_niche}::text IS NOT NULL AND c.sub_niche = ${channel.sub_niche} THEN 3 ELSE 0 END)
-            + (CASE WHEN ${language}::text IS NOT NULL AND c.lang = ${language} THEN 2 ELSE 0 END)
-            + (CASE WHEN ${channel.primary_format}::text IS NOT NULL AND c.primary_format = ${channel.primary_format} THEN 1.5 ELSE 0 END)
-            + (CASE WHEN ${channel.short_share}::float8 IS NOT NULL
-                 AND abs(coalesce(c.short_share, 0) - ${channel.short_share}::float8) < 0.3 THEN 1 ELSE 0 END)
-            -- Same order of magnitude of subscribers: 1 point, 0 at 100x apart.
-            + greatest(0, 1 - abs(ln(greatest(c.subscriber_count, 1)::float8 / ${subs}::float8)) / ln(100::float8))
-            + coalesce(c.niche_confidence, 0)`
-          : sql`
-            * (CASE WHEN c.category_id = ${category} THEN 1.5 ELSE 1 END)
-            * (CASE WHEN ${language}::text IS NOT NULL AND c.lang = ${language} THEN 1.5 ELSE 1 END)`
-      } AS score
-    FROM channels c
-    ${niche ? sql`LEFT JOIN matches m ON m.channel_id = c.id` : sql`JOIN matches m ON m.channel_id = c.id AND m.matching_videos >= 2`}
-    WHERE c.rss_error_count < 5
-      AND c.id <> ${channel.id}
-      AND COALESCE(c.subscriber_count, 0) >= 1000
-      ${niche ? sql`AND c.niche = ${niche}` : sql``}
-    ORDER BY score DESC
-    LIMIT 12`;
+    WITH terms AS (
+      SELECT t.i, to_tsquery('simple', t.q) AS tq, t.w, greatest(t.s, 0.05) AS s
+      FROM unnest(${queries}::text[], ${weights}::float8[], ${shares}::float8[]) WITH ORDINALITY AS t(q, w, s, i)
+    ),
+    -- Recall: channels of the main niches and channels whose recent titles hold the terms (ts_rank), capped so a
+    -- channel with hundreds of videos does not win on volume. The best ones get scored.
+    pool AS (
+      SELECT x.channel_id AS id
+      FROM (
+        SELECT id AS channel_id, 0 AS from_niche, 0 AS from_terms, 3 * coalesce((${json(profile.niches)}::jsonb ->> niche)::float8, 0) AS from_label
+        FROM channels WHERE niche = ANY(${topNiches}::text[])
+        UNION ALL
+        SELECT channel_id, coalesce((${json(profile.niches)}::jsonb ->> niche)::float8, 0), 0, 0
+        FROM videos WHERE niche = ANY(${topNiches}::text[]) AND published_at > now() - interval '2 years'
+        ${
+          queries.length
+            ? sql`UNION ALL
+              SELECT channel_id, 0, 10 * ts_rank(to_tsvector('simple', title), to_tsquery('simple', ${anyTerm})), 0
+              FROM videos
+              WHERE to_tsvector('simple', title) @@ to_tsquery('simple', ${anyTerm}) AND published_at > now() - interval '2 years'`
+            : sql``
+        }
+      ) x
+      JOIN channels c ON c.id = x.channel_id
+      WHERE c.id <> ${channel.id} AND c.rss_error_count < 5 AND c.terminated_at IS NULL AND COALESCE(c.subscriber_count, 0) >= 1000
+      GROUP BY x.channel_id
+      ORDER BY least(sum(x.from_niche), 8) + least(sum(x.from_terms), 8) + max(x.from_label) DESC
+      LIMIT ${SIMILAR_POOL}
+    ),
+    candidates AS (
+      SELECT c.* FROM channels c WHERE c.id = ${channel.id} OR c.id IN (SELECT id FROM pool)
+    ),
+    -- Each candidate's last 30 videos against the profile: share of their niche, sub-niche, style and hooks in it,
+    -- profile terms their title holds.
+    vids AS (
+      SELECT v.*,
+        coalesce((${json(profile.niches)}::jsonb ->> v.niche)::float8, 0) AS p_niche,
+        coalesce((${json(profile.subNiches)}::jsonb ->> v.sub_niche)::float8, 0) AS p_sub,
+        coalesce((${json(profile.formats)}::jsonb ->> v.format)::float8, 0) AS p_format,
+        coalesce((SELECT avg(coalesce((${json(profile.hooks)}::jsonb ->> h)::float8, 0)) FROM unnest(v.title_hooks) h), 0) AS p_hooks,
+        ARRAY(SELECT t.i FROM terms t WHERE v.tsv @@ t.tq) AS matched
+      FROM candidates c
+      CROSS JOIN LATERAL (
+        SELECT channel_id, youtube_video_id, title, thumbnail_url, view_count, outlier_multiplier, published_at,
+          is_short, duration_seconds, niche, sub_niche, format, title_hooks, to_tsvector('simple', title) AS tsv
+        FROM videos WHERE channel_id = c.id ORDER BY published_at DESC LIMIT 30
+      ) v
+    ),
+    -- How often each channel uses each term.
+    hits AS (
+      SELECT v.channel_id, m.i, count(*) AS cnt FROM vids v CROSS JOIN unnest(v.matched) AS m(i) GROUP BY 1, 2
+    ),
+    -- Term overlap: each profile term counts by its weight, fully once the channel uses it as often as the source
+    -- does. Breadth wins: one shared word ("game") is a small part of the total.
+    term_fit AS (
+      SELECT h.channel_id, sum(t.w * least(1, (h.cnt::float8 / n.n) / t.s)) / ${weights.reduce((a, b) => a + b, 0) || 1} AS fit
+      FROM hits h
+      JOIN terms t ON t.i = h.i
+      JOIN (SELECT channel_id, count(*) AS n FROM vids GROUP BY 1) n ON n.channel_id = h.channel_id
+      GROUP BY h.channel_id
+    ),
+    -- Length of each channel's niche, sub-niche and style count vectors, for the cosine with the profile.
+    norms AS (
+      SELECT channel_id,
+        sqrt(sum(cnt * cnt) FILTER (WHERE axis = 1)) AS niche_norm, sum(cnt) FILTER (WHERE axis = 1) AS niche_n,
+        sqrt(sum(cnt * cnt) FILTER (WHERE axis = 2)) AS sub_norm, sum(cnt) FILTER (WHERE axis = 2) AS sub_n,
+        sqrt(sum(cnt * cnt) FILTER (WHERE axis = 3)) AS format_norm, sum(cnt) FILTER (WHERE axis = 3) AS format_n
+      FROM (
+        SELECT channel_id, 1 AS axis, count(*)::float8 AS cnt FROM vids WHERE niche IS NOT NULL GROUP BY channel_id, niche
+        UNION ALL
+        SELECT channel_id, 2, count(*) FROM vids WHERE sub_niche IS NOT NULL GROUP BY channel_id, sub_niche
+        UNION ALL
+        SELECT channel_id, 3, count(*) FROM vids WHERE format IS NOT NULL GROUP BY channel_id, format
+      ) x
+      GROUP BY channel_id
+    ),
+    agg AS (
+      SELECT v.channel_id, count(*)::int AS n,
+        -- Cosine between how the channel's videos spread and the profile, damped when few of them are classified.
+        coalesce(sum(p_niche) / nullif(max(nm.niche_norm) * ${norm(profile.niches)}, 0) * max(nm.niche_n) / (max(nm.niche_n) + 3), 0) AS topic,
+        coalesce(sum(p_sub) / nullif(max(nm.sub_norm) * ${norm(profile.subNiches)}, 0) * max(nm.sub_n) / (max(nm.sub_n) + 3), 0) AS sub_topic,
+        coalesce(sum(p_format) / nullif(max(nm.format_norm) * ${norm(profile.formats)}, 0) * max(nm.format_n) / (max(nm.format_n) + 3), 0) AS style,
+        avg(p_hooks) AS hooks_dot,
+        coalesce(max(tf.fit), 0) AS term_fit,
+        count(*) FILTER (WHERE cardinality(matched) > 0)::int AS matching_videos,
+        avg(is_short::int)::float8 AS short_share,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY duration_seconds) FILTER (WHERE NOT is_short AND duration_seconds > 0) AS median_duration
+      FROM vids v
+      LEFT JOIN term_fit tf ON tf.channel_id = v.channel_id
+      LEFT JOIN norms nm ON nm.channel_id = v.channel_id
+      GROUP BY v.channel_id
+    ),
+    -- The source channel against its own profile: what a perfect match scores on the term and hook axes.
+    src AS (SELECT * FROM agg WHERE channel_id = ${channel.id}),
+    -- Fit on each axis, 0 to 1.
+    fits AS (
+      SELECT c.id, c.youtube_channel_id, c.name, c.handle, c.thumbnail_url, c.subscriber_count, c.country,
+        c.channel_created_at, c.outlier_rate, c.opportunity_score, c.trend_score, c.niche, c.sub_niche,
+        a.matching_videos,
+        -- Few videos: their averages say less.
+        a.n::float8 / (a.n + 3) AS trust,
+        a.topic, a.sub_topic, a.style,
+        -- Square root: sharing a third of the source terms is already a strong signal.
+        sqrt(least(1, coalesce(a.term_fit / nullif(s.term_fit, 0), 0))) AS terms,
+        least(1, coalesce(a.hooks_dot / nullif(s.hooks_dot, 0), 0)) AS hooks,
+        coalesce((${json(profile.niches)}::jsonb ->> c.niche)::float8, 0) / ${top(profile.niches)} AS label,
+        coalesce((${json(profile.subNiches)}::jsonb ->> c.sub_niche)::float8, 0) / ${top(profile.subNiches)} AS sub_label,
+        1 - abs(a.short_share - ${profile.shortShare}::float8) AS shorts,
+        CASE WHEN ${profile.medianDuration}::float8 IS NULL OR a.median_duration IS NULL THEN 0.5
+          ELSE greatest(0, 1 - abs(ln(a.median_duration / ${profile.medianDuration}::float8)) / ln(4)) END AS duration,
+        -- Same order of magnitude of subscribers.
+        greatest(0, 1 - abs(ln(greatest(c.subscriber_count, 1)::float8 / ${subs}::float8)) / ln(100::float8)) AS size,
+        ${profile.lang}::text IS NULL OR c.lang = ${profile.lang} AS same_lang
+      FROM agg a
+      JOIN candidates c ON c.id = a.channel_id
+      LEFT JOIN src s ON true
+      WHERE a.channel_id <> ${channel.id}
+    ),
+    -- What the channel is about first (niche, sub-niche, terms), then how it makes videos (style, hooks, format,
+    -- duration, size), which only fully counts for channels on the same topics. Another language costs 45 %.
+    scored AS (
+      SELECT f.*, (CASE WHEN same_lang THEN 1 ELSE 0.55 END) * (
+          topic_score + (0.3 + 0.7 * least(1, topic_score / 4)) * (
+            trust * 0.5 * hooks + shorts + 0.5 * duration + 0.3 * size
+          )
+        ) AS score
+      FROM (
+        SELECT *, trust * (2 * topic + 2 * sub_topic + 4 * terms + 2 * style) + 0.5 * label + 0.5 * sub_label AS topic_score FROM fits
+      ) f
+    ),
+    best AS (
+      SELECT * FROM scored ORDER BY score DESC NULLS LAST LIMIT ${SIMILAR_LIMIT * 3}
+    )
+    -- Each top channel with its video closest to the profile.
+    SELECT b.*, bv.youtube_video_id AS video_id, bv.title AS video_title, bv.thumbnail_url AS video_thumbnail,
+      bv.view_count AS video_views, bv.outlier_multiplier AS video_multiplier, bv.published_at AS video_published_at,
+      bv.is_short AS video_is_short, bv.video_score
+    FROM best b
+    LEFT JOIN LATERAL (
+      SELECT v.*,
+        2 * v.p_niche / ${top(profile.niches)} + 1.5 * v.p_sub / ${top(profile.subNiches)} + v.p_format / ${top(profile.formats)}
+        + 2.5 * least(1, (SELECT coalesce(sum(t.w), 0) FROM terms t WHERE t.i = ANY(v.matched)))
+        + (CASE WHEN v.is_short = ${!longForm} THEN 1 ELSE 0 END)
+        + 0.5 * least(1, ln(1 + greatest(coalesce(v.outlier_multiplier, 0), 0)) / ln(11)) AS video_score
+      FROM vids v WHERE v.channel_id = b.id
+      ORDER BY video_score DESC, v.view_count DESC NULLS LAST
+      LIMIT 1
+    ) bv ON true
+    ORDER BY b.score DESC NULLS LAST`;
 
-  const nicheJson = niche
-    ? {
-        id: niche,
-        label: NICHE_BY_ID[niche].label,
-        subNiche: NICHE_BY_ID[niche].subNiches.find((s) => s.id === channel.sub_niche)?.label ?? null,
-      }
-    : null;
+  const niche = topNiches[0] ?? null;
+  const items = rows.slice(0, SIMILAR_LIMIT).map((r) => ({
+    id: r.youtube_channel_id,
+    name: r.name,
+    handle: r.handle ?? null,
+    avatar: r.thumbnail_url ?? null,
+    subscribers: num(r.subscriber_count),
+    country: r.country ?? null,
+    createdAt: r.channel_created_at ? new Date(r.channel_created_at).toISOString() : null,
+    outlierRate: num(r.outlier_rate),
+    opportunityScore: num(r.opportunity_score),
+    trendScore: num(r.trend_score),
+    matchingVideos: Number(r.matching_videos),
+    niche: NICHE_BY_ID[r.niche]?.label ?? null,
+    subNiche: SUB_NICHE_BY_ID[r.sub_niche]?.label ?? null,
+    sampleVideo: r.video_id ? { id: r.video_id, title: r.video_title } : null,
+  }));
+  // Similar videos: the closest video of each top channel, the channel's own rank counting too.
+  const bestScore = Number(rows[0]?.score) || 1;
+  const videos = rows
+    .filter((r) => r.video_id)
+    .map((r) => ({ r, rank: Number(r.video_score) + 2 * (Number(r.score) / bestScore) }))
+    .sort((a, b) => b.rank - a.rank)
+    .slice(0, SIMILAR_VIDEOS)
+    .map(({ r }) => ({
+      id: r.video_id,
+      title: r.video_title,
+      thumbnail: r.video_thumbnail || `https://i.ytimg.com/vi/${r.video_id}/hqdefault.jpg`,
+      views: Number(r.video_views ?? 0),
+      multiplier: num(r.video_multiplier),
+      publishedAt: new Date(r.video_published_at).toISOString(),
+      isShort: Boolean(r.video_is_short),
+      channelId: r.youtube_channel_id,
+      channelName: r.name,
+    }));
+
   res.json({
-    keywords,
-    niche: nicheJson,
+    keywords: profile.terms.slice(0, 10).map((t) => t.term),
+    niche: niche
+      ? {
+          id: niche,
+          label: NICHE_BY_ID[niche].label,
+          subNiche: profileJson.subNiches.find((s) => NICHE_BY_ID[niche].subNiches.some((x) => x.id === s.id))?.label ?? null,
+        }
+      : null,
+    profile: profileJson,
+    items,
+    videos,
+  });
+}
+
+const TERMINATED_SORTS = {
+  recent: sql`c.terminated_at DESC, c.subscriber_count DESC NULLS LAST`,
+  subscribers: sql`c.subscriber_count DESC NULLS LAST, c.terminated_at DESC`,
+  views: sql`c.total_views DESC NULLS LAST, c.terminated_at DESC`,
+};
+
+/**
+ * Terminated channels: YouTube no longer returns them (worker's "terminated" job).
+ * Everything shown is what the database kept from before. ?q=… &niche=… &sort=recent|subscribers|views &page=0
+ */
+export async function terminatedChannels(req, res) {
+  const sort = Object.hasOwn(TERMINATED_SORTS, req.query.sort) ? req.query.sort : "recent";
+  const q = String(req.query.q ?? "").trim().slice(0, 100);
+  const niche = NICHE_BY_ID[req.query.niche] ? req.query.niche : null;
+  const { page, limit, offset } = parsePage(req.query, PAGE_SIZE);
+  const where = sql`
+    c.terminated_at IS NOT NULL
+    ${q ? sql`AND (c.name ILIKE ${"%" + q + "%"} OR c.handle ILIKE ${"%" + q + "%"})` : sql``}
+    ${niche ? sql`AND c.niche = ${niche}` : sql``}`;
+
+  const [rows, [{ total }]] = await Promise.all([
+    sql`
+      SELECT c.id, c.youtube_channel_id, c.name, c.handle, c.thumbnail_url, c.subscriber_count, c.total_views,
+        c.video_count, c.median_views, c.niche, c.sub_niche, c.lang, c.country, c.channel_created_at, c.terminated_at,
+        last.youtube_video_id AS last_video_id, last.title AS last_title, last.thumbnail_url AS last_thumbnail,
+        last.view_count AS last_views, last.published_at AS last_published_at, last.is_short AS last_is_short
+      FROM channels c
+      LEFT JOIN LATERAL (
+        SELECT youtube_video_id, title, thumbnail_url, view_count, published_at, is_short
+        FROM videos v WHERE v.channel_id = c.id ORDER BY published_at DESC LIMIT 1
+      ) last ON true
+      WHERE ${where}
+      ORDER BY ${TERMINATED_SORTS[sort]}
+      LIMIT ${limit} OFFSET ${offset}`,
+    sql`SELECT count(*)::int AS total FROM channels c WHERE ${where}`,
+  ]);
+
+  res.json({
+    total,
+    page,
+    hasMore: offset + rows.length < total,
+    sort,
     items: rows.map((r) => ({
       id: r.youtube_channel_id,
       name: r.name,
       handle: r.handle ?? null,
       avatar: r.thumbnail_url ?? null,
       subscribers: num(r.subscriber_count),
+      totalViews: num(r.total_views),
+      totalVideos: num(r.video_count),
+      medianViews: num(r.median_views),
+      niche: r.niche ?? null,
+      subNiche: r.sub_niche ?? null,
+      language: r.lang ?? null,
       country: r.country ?? null,
-      createdAt: r.channel_created_at ? new Date(r.channel_created_at).toISOString() : null,
-      outlierRate: num(r.outlier_rate),
-      opportunityScore: num(r.opportunity_score),
-      trendScore: num(r.trend_score),
-      matchingVideos: Number(r.matching_videos),
+      createdAt: iso(r.channel_created_at),
+      terminatedAt: iso(r.terminated_at),
+      lastVideo: r.last_video_id
+        ? {
+            id: r.last_video_id,
+            title: r.last_title,
+            thumbnail: r.last_thumbnail || `https://i.ytimg.com/vi/${r.last_video_id}/hqdefault.jpg`,
+            views: Number(r.last_views),
+            publishedAt: iso(r.last_published_at),
+            isShort: Boolean(r.last_is_short),
+          }
+        : null,
     })),
   });
 }

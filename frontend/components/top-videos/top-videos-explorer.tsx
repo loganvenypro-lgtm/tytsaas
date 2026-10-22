@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Database, Flame, Loader2, Search } from "lucide-react";
+import { Database, Flame, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,7 @@ import {
 } from "@/components/explorer/explorer-ui";
 import { localize, useFilterSpec, useUrlFilters } from "@/components/explorer/filter-spec";
 import { SpecFilterSection, topOptions, useSpecChips } from "@/components/explorer/spec-filters";
+import { InfiniteScroll } from "@/components/explorer/infinite-scroll";
 import { useI18n } from "@/components/i18n-provider";
 import { OutlierCard, type OutlierVideo } from "./outlier-card";
 
@@ -93,7 +94,7 @@ export function TopVideosExplorer() {
   }, [queryKey, reloadToken]);
 
   const loadMore = async () => {
-    if (!result) return;
+    if (!result || loadingMore) return;
     setLoadingMore(true);
     try {
       const data = await fetchJson<ApiResponse>(`/api/videos/top?${filters.apiParams(result.page + 1)}`);
@@ -225,14 +226,7 @@ export function TopVideosExplorer() {
                 <OutlierCard key={video.id} video={video} onFilter={filterOn} />
               ))}
             </Grid>
-            {result?.hasMore && (
-              <div className="flex justify-center pb-4">
-                <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
-                  {loadingMore && <Loader2 className="size-4 animate-spin" />}
-                  {t.common.showMore}
-                </Button>
-              </div>
-            )}
+            <InfiniteScroll hasMore={!!result?.hasMore} loading={loadingMore} onLoadMore={loadMore} />
           </>
         )}
       </div>

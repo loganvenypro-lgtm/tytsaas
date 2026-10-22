@@ -52,6 +52,8 @@ async function tick(selected = only) {
     trending: createBudget(Math.min(trendingUnitsPerRun(), leftToday)),
     backfill: createBudget(allowance * CONFIG.backfillShare * (pilot.saturated ? 0.25 : 1)),
     channels: createBudget(allowance * CONFIG.channelShare),
+    // A few units per run, apart from the tick allowance like trending.
+    terminated: createBudget(Math.min(CONFIG.terminatedMaxCalls, leftToday)),
   };
   // Videos and the RSS fallback share what the other jobs leave of the tick.
   const rest = createBudget(allowance);

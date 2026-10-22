@@ -42,9 +42,27 @@ export interface SavedItem {
   id: string
   snapshot: SavedItemSnapshot
   addedAt: string
+  /** Videos only: the ideation notes attached to it in this folder, oldest first. */
+  notes?: FolderNote[]
 }
 
 /** Fired on window after any folder change, so open menus and pages refresh. */
 export const FOLDERS_CHANGED_EVENT = "folders-changed"
 
 export const FOLDER_NAME_MAX = 80
+
+/** Kinds of ideation notes a video saved in a folder can carry. */
+export const NOTE_KINDS = ["idea", "hook", "title"] as const
+export type NoteKind = (typeof NOTE_KINDS)[number]
+
+export const NOTE_BODY_MAX = 4000
+
+/** A block of text (idea, hook, title) the user attached to a saved video. */
+export interface FolderNote {
+  id: string
+  videoId: string
+  kind: NoteKind
+  body: string
+  createdAt: string
+  updatedAt: string
+}

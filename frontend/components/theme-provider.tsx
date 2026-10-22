@@ -3,6 +3,13 @@
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
+// next-themes renders an inline <script> that sets the theme before paint. It only
+// matters in the server HTML; when React renders it on the client (it never runs
+// there) React 19 logs "Encountered a script tag". Typing it as data on the client
+// silences that; next-themes already suppresses the hydration mismatch.
+const scriptProps =
+  typeof window === "undefined" ? undefined : ({ type: "application/json" } as const)
+
 function ThemeProvider({
   children,
   ...props
@@ -13,6 +20,7 @@ function ThemeProvider({
       defaultTheme="system"
       enableSystem
       disableTransitionOnChange
+      scriptProps={scriptProps}
       {...props}
     >
       <ThemeHotkey />
@@ -47,7 +55,8 @@ function ThemeHotkey() {
         return
       }
 
-      if (event.key.toLowerCase() !== "d") {
+      // Autofill fires keydown events without a key
+      if (event.key?.toLowerCase() !== "d") {
         return
       }
 

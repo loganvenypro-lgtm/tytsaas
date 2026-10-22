@@ -18,7 +18,8 @@ export async function refreshVideos({ budget }) {
     select v.youtube_video_id, v.published_at > now() - interval '48 hours' as hot
     from ${refreshFrom}
     cross join lateral (select ${refreshIntervalHours} as hours) i
-    where v.published_at <= now()
+    -- Terminated channels' videos would all come back missing and be deleted: the tab keeps them until the purge.
+    where v.published_at <= now() and c.terminated_at is null
       and (i.hours = 0 or v.last_stats_at < now() - make_interval(hours => i.hours))
     order by i.hours, v.last_stats_at nulls first, v.published_at desc
     limit ${maxCalls * 50}`;
@@ -78,11 +79,13 @@ export async function refreshChannels({ budget }) {
     const items = data.items ?? [];
     stats.refreshed += await saveApiChannels(items);
 
-    // Terminated channels: stop polling; the purge deletes them after 30 days.
+    // Terminated channels: stop polling; the "terminated" job rechecks them, the purge deletes them after 30 days.
     const returned = new Set(items.map((i) => i.id));
     const missing = batch.filter((id) => !returned.has(id));
     if (missing.length) {
-      await sql`update channels set rss_error_count = 5 where youtube_channel_id in ${sql(missing)}`;
+      await sql`
+        update channels set rss_error_count = 5, terminated_at = coalesce(terminated_at, now()), terminated_checked_at = now()
+        where youtube_channel_id in ${sql(missing)}`;
       stats.missing += missing.length;
     }
   }

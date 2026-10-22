@@ -1,14 +1,17 @@
 import type * as React from "react"
 import {
+  Bell,
   Clapperboard,
   Eye,
   Flame,
   FolderBookmark,
   Home,
+  MonitorPlay,
   Plug,
   Search,
   Settings,
   ShieldCheck,
+  Users,
   Sparkles,
 } from "lucide-react"
 
@@ -23,6 +26,10 @@ export type NavItem = {
   url: string
   icon: React.ComponentType<{ className?: string }>
   items?: { key: NavItemKey; url: string }[]
+  /** Stays a link, with a chevron that lists the user's folders under it. */
+  folderList?: true
+  /** A count shown next to the label ("alerts": unread alert matches). */
+  badge?: "alerts"
 }
 
 export type NavSection = {
@@ -45,6 +52,7 @@ export const NAV_SECTIONS: NavSection[] = [
           { key: "topVideos", url: "/trending/top-videos" },
           { key: "breakoutCreators", url: "/trending/breakout-creators" },
           { key: "nicheFinder", url: "/trending/niche-finder" },
+          { key: "titleFormats", url: "/trending/title-formats" },
         ],
       },
       {
@@ -53,7 +61,23 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: Search,
         items: [
           { key: "keywords", url: "/search/keywords" },
+          { key: "channelSearch", url: "/search/channels" },
           { key: "hashtags", url: "/search/hashtags" },
+        ],
+      },
+    ],
+  },
+  {
+    key: "yourSpace",
+    items: [
+      {
+        key: "myChannel",
+        url: "/my-channel",
+        icon: MonitorPlay,
+        items: [
+          { key: "myOverview", url: "/my-channel/overview" },
+          { key: "myAbTests", url: "/my-channel/ab-tests" },
+          { key: "myRevivals", url: "/my-channel/revivals" },
         ],
       },
     ],
@@ -61,7 +85,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     key: "tracking",
     items: [
-      { key: "folders", url: "/folders", icon: FolderBookmark },
+      { key: "folders", url: "/folders", icon: FolderBookmark, folderList: true },
       {
         key: "channels",
         url: "/channels",
@@ -69,8 +93,10 @@ export const NAV_SECTIONS: NavSection[] = [
         items: [
           { key: "competitors", url: "/channels/competitors" },
           { key: "inspirations", url: "/channels/inspirations" },
+          { key: "terminatedChannels", url: "/channels/terminated" },
         ],
       },
+      { key: "alerts", url: "/alerts", icon: Bell, badge: "alerts" },
     ],
   },
   {
@@ -95,6 +121,7 @@ export const NAV_SECTIONS: NavSection[] = [
 const EXTRA_PAGES: Record<string, Omit<NavItem, "url">> = {
   "/settings": { key: "settings", icon: Settings },
   "/admin": { key: "admin", icon: ShieldCheck },
+  "/team": { key: "team", icon: Users },
 }
 
 export function isActive(url: string, pathname: string) {

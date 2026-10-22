@@ -14,7 +14,9 @@ import { runScores } from "./scores.js";
 import { runTrending } from "./trending.js";
 import { runDiscovery } from "./discovery.js";
 import { runMonetization } from "./monetization.js";
+import { runTerminated } from "./terminated.js";
 import { runReport } from "./report.js";
+import { runAlerts } from "./alerts.js";
 import { runPurge } from "./purge.js";
 
 export const JOBS = [
@@ -23,6 +25,7 @@ export const JOBS = [
   { name: "discovery", everyMinutes: CONFIG.discoveryIntervalHours * 60, quota: "discovery", run: runDiscovery },
   { name: "backfill", everyMinutes: 0, quota: "backfill", run: runBackfill },
   { name: "channels", everyMinutes: 0, quota: "channels", run: refreshChannels },
+  { name: "terminated", everyMinutes: CONFIG.terminatedIntervalHours * 60, quota: "terminated", run: runTerminated },
   { name: "videos", everyMinutes: 0, quota: "rest", run: refreshVideos },
   { name: "shorts", everyMinutes: 0, run: runShortsProbe },
   { name: "abtests", everyMinutes: 0, run: runAbTests },
@@ -30,6 +33,8 @@ export const JOBS = [
   { name: "scores", everyMinutes: 0, run: runScores },
   { name: "monetization", everyMinutes: CONFIG.monetizationIntervalHours * 60, run: runMonetization },
   { name: "purge", everyMinutes: 24 * 60, run: runPurge },
+  // Users' alerts, on this tick's fresh stats (no quota)
+  { name: "alerts", everyMinutes: 0, run: runAlerts },
   // Last: reads what the other jobs did this tick.
   { name: "report", everyMinutes: 0, run: runReport },
 ];

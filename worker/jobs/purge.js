@@ -16,6 +16,7 @@ export async function runPurge() {
   await sql`delete from discovery_rejected where rejected_at < now() - interval '90 days'`;
   await sql`delete from discovery_spend where day < current_date - 90`;
   await sql`delete from discord_reports where sent_at < now() - interval '90 days'`;
+  await sql`delete from alert_matches where matched_at < now() - interval '90 days'`;
   await sql`delete from scan_runs where started_at < now() - interval '60 days'`;
   return deleted;
 }

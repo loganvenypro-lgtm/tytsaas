@@ -12,20 +12,25 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { SocialSignInButton, oauthErrorMessage } from "@/components/social-sign-in-button"
 import { useI18n } from "@/components/i18n-provider"
 import { toast } from "@/components/ui/toast"
 import { signIn } from "@/lib/auth-client"
+import { withNext } from "@/lib/utils"
 import { GalleryVerticalEndIcon } from "lucide-react"
 
 export function LoginForm({
+  oauthError,
+  next = "/",
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { oauthError?: string; next?: string }) {
   const { t } = useI18n()
   const router = useRouter()
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => oauthErrorMessage(oauthError, t))
   const [pending, setPending] = useState(false)
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -45,7 +50,7 @@ export function LoginForm({
       return
     }
     toast.add({ type: "success", title: t.auth.login.welcomeBack })
-    router.push("/")
+    router.push(next)
     router.refresh()
   }
 
@@ -65,7 +70,7 @@ export function LoginForm({
             </Link>
             <h1 className="text-xl font-bold">{t.auth.welcome(t.brand)}</h1>
             <FieldDescription>
-              {t.auth.login.noAccount} <Link href="/signup">{t.auth.login.signUp}</Link>
+              {t.auth.login.noAccount} <Link href={withNext("/signup", next)}>{t.auth.login.signUp}</Link>
             </FieldDescription>
           </div>
           <Field>
@@ -94,6 +99,11 @@ export function LoginForm({
             <Button type="submit" disabled={pending}>
               {pending ? t.auth.login.pending : t.auth.login.submit}
             </Button>
+          </Field>
+          <FieldSeparator>{t.auth.orContinueWith}</FieldSeparator>
+          <Field>
+            <SocialSignInButton provider="google" callbackURL={next} errorCallbackURL={withNext("/login", next)} onError={setError} />
+            <SocialSignInButton provider="discord" callbackURL={next} errorCallbackURL={withNext("/login", next)} onError={setError} />
           </Field>
         </FieldGroup>
       </form>

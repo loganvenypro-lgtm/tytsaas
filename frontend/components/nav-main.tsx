@@ -8,6 +8,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -22,7 +23,19 @@ import {
 import { ChevronDownIcon } from "lucide-react"
 
 import { useI18n } from "@/components/i18n-provider"
+import { NavFolders } from "@/components/nav-folders"
 import { isActive, type NavSection } from "@/lib/nav"
+import { useUnreadAlerts } from "@/lib/alerts"
+
+function UnreadAlertsBadge() {
+  const count = useUnreadAlerts()
+  if (!count) return null
+  return (
+    <SidebarMenuBadge className="bg-primary text-primary-foreground peer-hover/menu-button:text-primary-foreground peer-data-active/menu-button:text-primary-foreground">
+      {count > 99 ? "99+" : count}
+    </SidebarMenuBadge>
+  )
+}
 
 export function NavMain({ sections }: { sections: NavSection[] }) {
   const { t } = useI18n()
@@ -42,6 +55,7 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
               {section.items.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.url, pathname)
+                if (item.folderList) return <NavFolders key={item.url} item={item} />
                 if (item.items && item.items.length > 0) {
                   return (
                     <Collapsible
@@ -102,6 +116,7 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                         <span>{t.nav.items[item.key]}</span>
                       </Link>
                     </SidebarMenuButton>
+                    {item.badge === "alerts" && <UnreadAlertsBadge />}
                   </SidebarMenuItem>
                 )
               })}

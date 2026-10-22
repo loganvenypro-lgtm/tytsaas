@@ -11,6 +11,7 @@ import { useOptionLabels } from "@/components/explorer/filter-spec";
 import { useI18n } from "@/components/i18n-provider";
 import { FilterBadge } from "@/components/top-videos/outlier-card";
 import { SaveToFolderMenu } from "@/components/folders/save-to-folder-menu";
+import { FollowMenu } from "@/components/inspirations/follow-button";
 import { cn } from "@/lib/utils";
 
 export interface TrendChannel {
@@ -269,6 +270,7 @@ export function ChannelCard({
           <Users className="size-4" />
           {tc.similar}
         </Button>
+        <FollowMenu channelId={channel.id} channelName={channel.name} />
         <SaveToFolderMenu
           item={{
             type: "channel",
@@ -283,6 +285,7 @@ export function ChannelCard({
         />
         <Button
           variant="ghost"
+          className="col-span-2 sm:col-span-1"
           nativeButton={false}
           render={<a href={`https://www.youtube.com/channel/${channel.id}`} target="_blank" rel="noopener noreferrer" />}
         >

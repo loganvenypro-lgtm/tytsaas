@@ -1,5 +1,5 @@
-import { PagePlaceholder } from "@/components/page-placeholder"
+import { FollowedChannelsExplorer } from "@/components/inspirations/inspirations-explorer"
 
 export default function InspirationsPage() {
-  return <PagePlaceholder page="inspirations" />
+  return <FollowedChannelsExplorer kind="inspiration" />
 }
