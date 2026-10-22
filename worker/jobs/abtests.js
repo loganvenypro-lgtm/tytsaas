@@ -28,7 +28,11 @@ export async function runAbTests() {
         or (v.published_at > now() - interval '7 days' and v.thumb_checked_at < now() - interval '4 hours')
         or v.thumb_checked_at < now() - interval '12 hours'
       )
-    order by v.thumb_checked_at nulls first, v.published_at desc
+    -- Tests run in the first 48 h and swap versions within hours: those videos and
+    -- the ones already showing a change come first, so a backlog of older
+    -- never-checked videos can't delay them (and their versions' pictures).
+    order by (v.published_at > now() - interval '48 hours' or v.thumbnail_variants > 1) desc,
+      v.thumb_checked_at nulls first, v.published_at desc
     limit ${CONFIG.abMaxPerTick}`;
 
   const checked = [];

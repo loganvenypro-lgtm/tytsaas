@@ -52,7 +52,8 @@ export const CONFIG = {
 
   // A/B tests (thumbnail CDN, free): how recent and how often.
   abWindowDays: num("AB_WINDOW_DAYS", 14),
-  abMaxPerTick: num("AB_MAX_PER_TICK", 1500),
+  // Videos < 48 h are rechecked hourly (~5-6K of them): each tick must cover half of them plus the rest.
+  abMaxPerTick: num("AB_MAX_PER_TICK", 3000),
 
   // Shorts probe (free): videos up to 3 min whose format is not certain yet.
   shortsMaxPerTick: num("SHORTS_MAX_PER_TICK", 800),
