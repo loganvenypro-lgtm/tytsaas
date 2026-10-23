@@ -15,7 +15,10 @@ export async function list(req, res) {
       LEFT JOIN videos v ON v.youtube_video_id = m.video_id
       WHERE a.user_id = ${req.user.id} AND m.read_at IS NULL
       GROUP BY a.id, a.name`,
-    sql`
+    // Invitations match on the email, so they only show once the user proved they own it
+    !req.user.emailVerified
+      ? []
+      : sql`
       SELECT i.id, i.role, i."createdAt" AS at, o.name AS team, u.name AS inviter
       FROM "invitation" i
       JOIN "organization" o ON o.id = i."organizationId"

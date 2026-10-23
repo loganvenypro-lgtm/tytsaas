@@ -278,7 +278,6 @@ function PasswordCard() {
 
 type DeviceSession = {
   id: string
-  token: string
   createdAt: string | Date
   updatedAt: string | Date
   ipAddress?: string | null
@@ -305,12 +304,18 @@ function SessionsCard({ currentSessionId }: { currentSessionId: string }) {
 
   React.useEffect(() => {
     let cancelled = false
-    authClient.listSessions().then(({ data, error }) => {
-      if (cancelled) return
-      if (error) setError(error.message ?? ts.loadFailed)
-      else setSessions([...data].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt)))
-      setBusy(null)
-    })
+    // Our route, not Better Auth's list-sessions: ids only, no session token in the browser
+    fetch("/api/account/sessions")
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(body.error ?? ts.loadFailed)
+        return body.sessions as DeviceSession[]
+      })
+      .then(
+        (data) => !cancelled && setSessions(data),
+        (err: Error) => !cancelled && setError(err.message)
+      )
+      .finally(() => !cancelled && setBusy(null))
     return () => {
       cancelled = true
     }
@@ -318,8 +323,9 @@ function SessionsCard({ currentSessionId }: { currentSessionId: string }) {
 
   async function revoke(session: DeviceSession) {
     setBusy(session.id)
-    const { error } = await authClient.revokeSession({ token: session.token })
-    if (error) toast.add({ type: "error", title: ts.revokeFailed, description: error.message })
+    const res = await fetch(`/api/account/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" })
+    const error = res.ok ? null : ((await res.json().catch(() => ({}))) as { error?: string })
+    if (error) toast.add({ type: "error", title: ts.revokeFailed, description: error.error })
     else toast.add({ type: "success", title: ts.revoked, description: describeDevice(session.userAgent, ts).label })
     setVersion((v) => v + 1)
   }

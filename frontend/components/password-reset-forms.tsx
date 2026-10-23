@@ -3,9 +3,9 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { GalleryVerticalEndIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { ReturbeMark } from "@/components/returbe-logo"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useI18n } from "@/components/i18n-provider"
@@ -17,9 +17,7 @@ function Header({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="flex flex-col items-center gap-2 text-center">
       <Link href="/" className="flex flex-col items-center gap-2 font-medium">
-        <div className="flex size-8 items-center justify-center rounded-md">
-          <GalleryVerticalEndIcon className="size-6" />
-        </div>
+        <ReturbeMark className="size-10" />
         <span className="sr-only">{t.brand}</span>
       </Link>
       <h1 className="text-xl font-bold">{title}</h1>
@@ -45,7 +43,7 @@ export function ForgotPasswordForm() {
     const { error } = await authClient.requestPasswordReset({ email, redirectTo: `${window.location.origin}/reset-password` })
     setPending(false)
     if (error) {
-      setError((error.code && t.auth.errors[error.code]) || f.failed)
+      setError(t.auth.errors[error.status === 429 ? "TOO_MANY_REQUESTS" : (error.code ?? "")] || f.failed)
       return
     }
     setSentTo(email)
@@ -117,7 +115,7 @@ export function ResetPasswordForm({ token, linkError }: { token?: string; linkEr
     setPending(true)
     const { error } = await authClient.resetPassword({ newPassword, token })
     if (error) {
-      setError((error.code && t.auth.errors[error.code]) || error.message || r.failed)
+      setError(t.auth.errors[error.status === 429 ? "TOO_MANY_REQUESTS" : (error.code ?? "")] || error.message || r.failed)
       setPending(false)
       return
     }

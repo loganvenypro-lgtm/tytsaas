@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
+import { ReturbeMark } from "@/components/returbe-logo"
 import {
   Field,
   FieldDescription,
@@ -20,7 +21,6 @@ import { useI18n } from "@/components/i18n-provider"
 import { toast } from "@/components/ui/toast"
 import { signIn } from "@/lib/auth-client"
 import { withNext } from "@/lib/utils"
-import { GalleryVerticalEndIcon } from "lucide-react"
 
 export function LoginForm({
   oauthError,
@@ -42,10 +42,12 @@ export function LoginForm({
     const { error } = await signIn.email({
       email: String(form.get("email")),
       password: String(form.get("password")),
+      // Where the link of the verification email lands, for an account not verified yet
+      callbackURL: next,
     })
 
     if (error) {
-      setError((error.code && t.auth.errors[error.code]) || error.message || t.auth.login.failed)
+      setError(t.auth.errors[error.status === 429 ? "TOO_MANY_REQUESTS" : (error.code ?? "")] || error.message || t.auth.login.failed)
       setPending(false)
       return
     }
@@ -63,9 +65,7 @@ export function LoginForm({
               href="/"
               className="flex flex-col items-center gap-2 font-medium"
             >
-              <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEndIcon className="size-6" />
-              </div>
+              <ReturbeMark className="size-10" />
               <span className="sr-only">{t.brand}</span>
             </Link>
             <h1 className="text-xl font-bold">{t.auth.welcome(t.brand)}</h1>

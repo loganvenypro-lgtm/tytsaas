@@ -72,3 +72,23 @@ export async function deleteAccount(req, res) {
   });
   res.json({ ok: true });
 }
+
+/**
+ * GET /api/account/sessions: the user's signed-in devices, newest activity first.
+ * Ids only: a session token never reaches the browser.
+ */
+export async function listSessions(req, res) {
+  const rows = await sql`
+    SELECT id, "createdAt", "updatedAt", "ipAddress", "userAgent" FROM session
+    WHERE "userId" = ${req.user.id} AND "expiresAt" > now()
+    ORDER BY "updatedAt" DESC`;
+  res.json({ sessions: rows.map((s) => ({ ...s, current: s.id === req.sessionId })) });
+}
+
+/** DELETE /api/account/sessions/:sessionId: signs that device out (not the current one: that's sign-out). */
+export async function revokeSession(req, res) {
+  if (req.params.sessionId === req.sessionId) return res.status(400).json({ error: "Utilise la déconnexion pour cet appareil." });
+  const { count } = await sql`DELETE FROM session WHERE id = ${req.params.sessionId} AND "userId" = ${req.user.id}`;
+  if (!count) return res.status(404).json({ error: "Session introuvable." });
+  res.json({ ok: true });
+}

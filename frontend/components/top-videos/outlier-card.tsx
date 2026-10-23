@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, Flame, Image as ImageIcon, Lightbulb, MessageCircle, SplitSquareHorizontal, ThumbsUp, Zap } from "lucide-react";
+import { Image as ImageIcon, Lightbulb, MessageCircle, SplitSquareHorizontal, ThumbsUp } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -47,11 +47,15 @@ export interface OutlierVideo {
 }
 
 
+/** The multiplier is the card's headline: red once a video does 10x its channel, muted under 3x. */
 function multiplierTone(multiplier: number) {
-  if (multiplier >= 10) return "bg-emerald-600 text-white";
-  if (multiplier >= 3) return "bg-emerald-500/90 text-white";
-  return "bg-white/90 text-slate-900";
+  if (multiplier >= 10) return "text-brand-text";
+  if (multiplier >= 3) return "text-foreground";
+  return "text-muted-foreground";
 }
+
+const formatMultiplier = (multiplier: number) =>
+  multiplier >= 100 ? Math.round(multiplier).toString() : multiplier.toFixed(1);
 
 /** The "Similar videos" page for a video, compared by topic or thumbnail. */
 export const similarVideosUrl = (videoId: string, by: "topic" | "thumbnail") =>
@@ -85,30 +89,17 @@ export function OutlierCard({
   });
 
   return (
-    <Card className="group gap-0 overflow-hidden p-0 transition-[box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/[0.06]">
+    <Card className="group gap-0 overflow-hidden p-0 transition-shadow duration-200 hover:ring-foreground/20">
       <div className="group/thumb relative">
         <a href={url} target="_blank" rel="noopener noreferrer" className="relative block aspect-video overflow-hidden bg-muted">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={video.thumbnail}
-            alt=""
-            loading="lazy"
-            className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          />
-          {video.multiplier != null && video.multiplier >= 1 && (
-            <span
-              className={cn(
-                "absolute top-2 left-2 flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold shadow-sm",
-                multiplierTone(video.multiplier),
-              )}
-            >
-              <Flame className="size-3" />
-              {video.multiplier.toFixed(1)}x
+          <img src={video.thumbnail} alt="" loading="lazy" className="size-full object-cover" />
+          {/* Long-form is the default everywhere: only Shorts are worth flagging */}
+          {video.isShort && (
+            <span className="absolute top-2 left-2 rounded-md bg-black/75 px-1.5 py-0.5 text-[11px] font-medium text-white">
+              {t.common.short}
             </span>
           )}
-          <span className="absolute top-2 right-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[11px] font-medium text-white">
-            {video.isShort ? t.common.short : t.common.longVideo}
-          </span>
           {video.duration && (
             <span className="absolute right-2 bottom-2 rounded bg-black/80 px-1 py-0.5 text-[11px] font-medium text-white tabular-nums">
               {video.duration}
@@ -136,11 +127,16 @@ export function OutlierCard({
           </div>
         </div>
         {similarity != null && (
-          <span className="pointer-events-none absolute top-9 left-2 rounded-md transition-opacity group-hover/thumb:opacity-0 bg-brand px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-sm">
+          <span
+            className={cn(
+              "pointer-events-none absolute left-2 rounded-md bg-brand px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-sm transition-opacity group-hover/thumb:opacity-0",
+              video.isShort ? "top-9" : "top-2",
+            )}
+          >
             {t.topVideos.card.similarity(Math.round(similarity * 100))}
           </span>
         )}
-        <div className="absolute top-9 right-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-data-[popup-open]:opacity-100 [@media(hover:none)]:opacity-100">
+        <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-data-[popup-open]:opacity-100 [@media(hover:none)]:opacity-100">
           <SaveToFolderMenu
             variant="overlay"
             item={{
@@ -179,54 +175,67 @@ export function OutlierCard({
       </div>
       {hasAbTest && <AbHistorySheet video={video} open={abOpen} onOpenChange={setAbOpen} />}
 
-      <div className="flex flex-1 flex-col gap-3 p-3.5">
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="line-clamp-2 text-sm leading-snug font-medium text-foreground hover:underline"
-          title={video.title}
-        >
-          {video.title}
-        </a>
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div className="flex flex-col gap-2">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="line-clamp-2 text-[15px] leading-snug font-medium text-pretty text-foreground hover:underline"
+            title={video.title}
+          >
+            {video.title}
+          </a>
+          <a
+            href={`https://www.youtube.com/channel/${video.channel.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-w-0 items-center gap-2 text-xs"
+          >
+            <Avatar className="size-5">
+              {video.channel.avatar && <AvatarImage src={video.channel.avatar} alt="" />}
+              <AvatarFallback className="text-[9px]">{video.channel.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <span className="truncate font-medium text-foreground/90 hover:underline">{video.channel.name}</span>
+            <span className="shrink-0 text-muted-foreground">
+              {video.channel.subscribers != null ? t.common.subscribers(compact(video.channel.subscribers)) : t.common.hiddenSubscribers}
+            </span>
+          </a>
+        </div>
 
-        <a
-          href={`https://www.youtube.com/channel/${video.channel.id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex min-w-0 items-center gap-2"
-        >
-          <Avatar className="size-6">
-            {video.channel.avatar && <AvatarImage src={video.channel.avatar} alt="" />}
-            <AvatarFallback className="text-[10px]">{video.channel.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <span className="truncate text-xs font-medium text-foreground">{video.channel.name}</span>
-          <span className="shrink-0 text-xs text-muted-foreground">
-            · {video.channel.subscribers != null ? t.common.subscribers(compact(video.channel.subscribers)) : t.common.hiddenSubscribers}
-          </span>
-        </a>
-
-        <div className="grid grid-cols-3 divide-x divide-border/70 rounded-lg bg-muted py-2 text-center">
-          <Stat icon={<Eye className="size-3" />} label={t.topVideos.card.views} value={compact(video.views)} />
-          <Stat
-            icon={<Zap className="size-3" />}
-            label={t.topVideos.card.velocity}
-            value={video.viewsPerHour != null ? compact(video.viewsPerHour) : "—"}
-          />
-          <Stat
-            icon={<Flame className="size-3" />}
-            label={t.topVideos.card.usual}
-            value={video.usualViews != null ? compact(video.usualViews) : "—"}
-          />
+        {/* The outlier itself: how far above the channel's usual views this video went */}
+        <div className="flex items-end justify-between gap-3 border-y py-3">
+          {video.multiplier != null && video.multiplier >= 1 ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <div className="min-w-0 cursor-default">
+                    <div className={cn("text-[28px] leading-none font-semibold tracking-tight tabular-nums", multiplierTone(video.multiplier))}>
+                      {formatMultiplier(video.multiplier)}
+                      <span className="ml-0.5 text-lg font-medium">×</span>
+                    </div>
+                    {video.usualViews != null && (
+                      <div className="mt-1.5 truncate text-xs text-muted-foreground">
+                        {t.topVideos.card.vsUsual(compact(video.usualViews))}
+                      </div>
+                    )}
+                  </div>
+                }
+              />
+              <TooltipContent>{t.topVideos.card.multiplierHint}</TooltipContent>
+            </Tooltip>
+          ) : (
+            <div />
+          )}
+          <div className="shrink-0 text-right">
+            <div className="text-sm font-semibold text-foreground tabular-nums">{t.topVideos.card.viewsCount(compact(video.views))}</div>
+            {video.viewsPerHour != null && video.viewsPerHour > 0 && (
+              <div className="mt-1 text-xs text-muted-foreground tabular-nums">{t.topVideos.card.perHour(compact(video.viewsPerHour))}</div>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          {video.score != null && (
-            <Tooltip>
-              <TooltipTrigger render={<Badge>{Math.round(video.score)}/100</Badge>} />
-              <TooltipContent>{t.topVideos.card.scoreHint}</TooltipContent>
-            </Tooltip>
-          )}
           {video.niche ? (
             <FilterBadge filterKey="niche" value={video.niche} label={labelOf("niche", video.niche)} onFilter={onFilter} variant="secondary" />
           ) : (
@@ -250,11 +259,25 @@ export function OutlierCard({
           </div>
         )}
 
-        <div className="mt-auto flex items-center justify-between gap-2 border-t pt-2.5 text-xs text-muted-foreground">
-          <Tooltip>
-            <TooltipTrigger render={<span>{ago(video.publishedAt, "hour")}</span>} />
-            <TooltipContent>{t.time.publishedOn(publishedLabel)}</TooltipContent>
-          </Tooltip>
+        <div className="mt-auto flex items-center justify-between gap-2 pt-1 text-xs text-muted-foreground">
+          <span className="flex items-center gap-2.5">
+            <Tooltip>
+              <TooltipTrigger render={<span>{ago(video.publishedAt, "hour")}</span>} />
+              <TooltipContent>{t.time.publishedOn(publishedLabel)}</TooltipContent>
+            </Tooltip>
+            {video.score != null && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span className="rounded-md border px-1.5 py-px font-medium text-foreground/80 tabular-nums">
+                      {Math.round(video.score)}/100
+                    </span>
+                  }
+                />
+                <TooltipContent>{t.topVideos.card.scoreHint}</TooltipContent>
+              </Tooltip>
+            )}
+          </span>
           <span className="flex items-center gap-2.5 tabular-nums">
             {video.likes != null && (
               <span className="flex items-center gap-1">
@@ -268,7 +291,12 @@ export function OutlierCard({
                 {compact(video.comments)}
               </span>
             )}
-            {engagement != null && <span>{t.common.percent(engagement.toFixed(1))}</span>}
+            {engagement != null && (
+              <Tooltip>
+                <TooltipTrigger render={<span>{t.common.percent(engagement.toFixed(1))}</span>} />
+                <TooltipContent>{t.topVideos.card.engagementHint}</TooltipContent>
+              </Tooltip>
+            )}
           </span>
         </div>
       </div>
@@ -304,17 +332,5 @@ export function FilterBadge({
     >
       {plain ? text : <Badge variant={variant} className="cursor-pointer hover:border-primary/40">{text}</Badge>}
     </button>
-  );
-}
-
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="min-w-0 px-1">
-      <div className="flex items-center justify-center gap-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-        {icon}
-        {label}
-      </div>
-      <div className="truncate text-sm font-semibold text-foreground tabular-nums">{value}</div>
-    </div>
   );
 }

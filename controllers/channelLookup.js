@@ -2,7 +2,7 @@ import { sql } from "../lib/sql.js";
 import { NICHE_BY_ID } from "../lib/taxonomy/index.js";
 import { blendedRpm, summarizeVideos } from "../lib/monetization.js";
 import { createBudget, youtubeApi } from "../lib/youtube.js";
-import { parseChannelInput } from "./onboarding.js";
+import { parseChannelInput, youtubeLookups } from "./onboarding.js";
 
 const num = (value) => (value != null ? Number(value) : null);
 const iso = (value) => (value ? new Date(value).toISOString() : null);
@@ -48,7 +48,7 @@ export async function lookup(req, res) {
     ORDER BY (lower(name) = lower(${name}) OR lower(handle) = lower(${`@${handle ?? name}`})) DESC,
       subscriber_count DESC NULLS LAST
     LIMIT ${SEARCH_LIMIT}`;
-  if (rows.length || (!id && !handle) || !process.env.YOUTUBE_API_KEY) {
+  if (rows.length || (!id && !handle) || !process.env.YOUTUBE_API_KEY || youtubeLookups.hit(req.user.id)) {
     return res.json({ channels: rows.map(searchJson), external: null });
   }
 

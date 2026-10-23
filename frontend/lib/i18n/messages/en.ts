@@ -305,8 +305,8 @@ const en: Messages = {
       pending: "Creating account…",
       failed: "Could not create the account.",
       mismatch: "Passwords do not match.",
-      created: "Account created",
-      createdDescription: (brand) => `Welcome to ${brand}!`,
+      checkEmailTitle: "Confirm your email",
+      checkEmail: (email) => `We just sent a link to ${email}. Click it to activate your account (valid for 1 hour).`,
     },
     orContinueWith: "Or",
     social: {
@@ -335,6 +335,8 @@ const en: Messages = {
       PASSWORD_TOO_LONG: "The password is too long.",
       USER_ALREADY_EXISTS: "An account already exists with this email.",
       USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "An account already exists with this email.",
+      EMAIL_NOT_VERIFIED: "Confirm your email first: we just sent you a new link.",
+      TOO_MANY_REQUESTS: "Too many attempts, try again in a few minutes.",
     },
   },
 
@@ -477,6 +479,11 @@ const en: Messages = {
       views: "Views",
       velocity: "Views/h",
       usual: "Usual",
+      vsUsual: (views: string) => `vs ${views} usually`,
+      viewsCount: (views: string) => `${views} views`,
+      perHour: (views: string) => `${views} / h`,
+      multiplierHint: "The video's views divided by the channel's usual views",
+      engagementHint: "Engagement: likes and comments relative to views",
       scoreHint: "Relevance score: multiplier, views, views/subscribers ratio and freshness",
       moreLikeThis: "More like this:",
       moreTopic: "Topic",
@@ -1527,6 +1534,97 @@ const en: Messages = {
       ledgerVideo: "Video",
       ledgerViews: "Views against the channel median",
       ledgerScore: "Score",
+    },
+    // /welcome3 only
+    v3: {
+      skip: "Skip to content",
+      nav: { tools: "Tools", niches: "Niches", pricing: "Pricing", faq: "FAQ" },
+      hero: {
+        badge: (n) => `${n} YouTube channels tracked every day`,
+        title: "Find your next ×10 video.",
+        subtitle: (brand) =>
+          `${brand} compares every video to its channel's median. You see the topics pulling 10, 50 or 100 times their usual views, in your niche, before everyone else.`,
+        inputLabel: "Your YouTube channel's link or name",
+        inputPlaceholder: "youtube.com/@your-channel",
+        submit: "Analyze my channel",
+        reassurance: "Free, no credit card, no need to connect your YouTube account.",
+        chartTitle: "The channel's last 12 videos",
+        median: "channel median",
+        times: (n) => `${n} times its usual views`,
+        pick: "Pick another outlier",
+      },
+      creators: (brand) => `Channels where ${brand} spotted outliers`,
+      versus: {
+        title: "Stop picking topics on a hunch.",
+        without: "Without data",
+        with: (brand) => `With ${brand}`,
+        withoutItems: [
+          "A week of filming bet on a gut feeling",
+          "Trends reach you once they're already saturated",
+          "You copy 20M-subscriber channels that teach you nothing",
+          "Keywords tell you what people type, not what they watch",
+          "Hours scrolling YouTube to find one idea",
+        ],
+        withItems: [
+          "Topics that already did ×10 on channels like yours",
+          "Fresh signals from your niche, updated every day",
+          "Small channels that blow up surface as much as giants",
+          "The titles and thumbnails that get clicks, side by side",
+          "A list of ideas ready in minutes",
+        ],
+      },
+      niches: {
+        title: "Pick a niche. Here's what's blowing up.",
+        subtitle: (brand) => `These videos come straight from the ${brand} index. Nothing is staged.`,
+        cta: "Explore every niche",
+      },
+      tools: {
+        title: "Everything you need to decide your next video.",
+        subtitle: "Research, monitoring and packaging, all wired to the same index of overperforming videos.",
+        topVideos: "Top videos",
+        topVideosText: "Thousands of videos ranked by outlier score, filterable by format, length and channel size.",
+        opportunity: "Opportunity score",
+        rising: "Rising this week",
+      },
+      steps: { title: "From no idea to your next shoot, in three steps." },
+      pricing: {
+        title: "Cheaper than one flopped video.",
+        subtitle: "Every research tool from Starter up. Switch plans or cancel whenever you like.",
+        yearlyBadge: "2 months free",
+      },
+      faq: {
+        title: "Before you ask",
+        items: [
+          {
+            q: "What exactly is an outlier?",
+            a: "A video that gets far more views than its channel's median. A ×20 score means 20 times the views of a typical video from that channel.",
+          },
+          {
+            q: "Does it work for a small or faceless channel?",
+            a: "Yes, that's where it works best. Every video is compared to its own channel, so small channels that blow up surface as much as big ones.",
+          },
+          {
+            q: "Do I need to connect my YouTube account?",
+            a: "No. Your channel's name or link is enough. We never get access to your account.",
+          },
+          {
+            q: "Where does the data come from, and is it up to date?",
+            a: "Public YouTube data, collected continuously. Views, scores and trends are recomputed every day.",
+          },
+          {
+            q: "Which languages and niches?",
+            a: "All of them. The interface is in English and French, and the index covers videos in every language and on every topic.",
+          },
+          {
+            q: "Can I cancel anytime?",
+            a: "Yes, no commitment. Cancel in one click and keep access until the end of the paid period. If the tool doesn't help you, write to us within 7 days for a refund.",
+          },
+        ],
+      },
+      final: {
+        title: "Your next ×10 video already exists.",
+        text: (brand) => `Someone just made it before you, in another niche or another language. ${brand} shows it to you.`,
+      },
     },
   },
 

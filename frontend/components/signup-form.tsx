@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
+import { ReturbeMark } from "@/components/returbe-logo"
 import {
   Field,
   FieldDescription,
@@ -17,11 +17,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { SocialSignInButton, oauthErrorMessage } from "@/components/social-sign-in-button"
 import { useI18n } from "@/components/i18n-provider"
-import { toast } from "@/components/ui/toast"
 import { track } from "@/lib/analytics"
 import { signUp } from "@/lib/auth-client"
 import { withNext } from "@/lib/utils"
-import { GalleryVerticalEndIcon } from "lucide-react"
+import { MailCheckIcon } from "lucide-react"
 
 export function SignupForm({
   oauthError,
@@ -30,9 +29,10 @@ export function SignupForm({
   ...props
 }: React.ComponentProps<"div"> & { oauthError?: string; next?: string }) {
   const { t } = useI18n()
-  const router = useRouter()
   const [error, setError] = useState<string | null>(() => oauthErrorMessage(oauthError, t))
   const [pending, setPending] = useState(false)
+  // Set once the account exists: no session until the link in the email is clicked
+  const [sentTo, setSentTo] = useState<string | null>(null)
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -46,21 +46,38 @@ export function SignupForm({
     }
 
     setPending(true)
+    const email = String(form.get("email"))
     const { error } = await signUp.email({
       name: String(form.get("name")),
-      email: String(form.get("email")),
+      email,
       password,
+      callbackURL: next,
     })
 
     if (error) {
-      setError((error.code && t.auth.errors[error.code]) || error.message || t.auth.signup.failed)
+      setError(t.auth.errors[error.status === 429 ? "TOO_MANY_REQUESTS" : (error.code ?? "")] || error.message || t.auth.signup.failed)
       setPending(false)
       return
     }
     track("user_signed_up", { method: "email" })
-    toast.add({ type: "success", title: t.auth.signup.created, description: t.auth.signup.createdDescription(t.brand) })
-    router.push(next)
-    router.refresh()
+    setSentTo(email)
+  }
+
+  if (sentTo) {
+    return (
+      <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <FieldGroup>
+          <div className="flex flex-col items-center gap-2 text-center">
+            <MailCheckIcon className="size-8" />
+            <h1 className="text-xl font-bold">{t.auth.signup.checkEmailTitle}</h1>
+            <FieldDescription>{t.auth.signup.checkEmail(sentTo)}</FieldDescription>
+          </div>
+          <FieldDescription className="text-center">
+            <Link href={withNext("/login", next)}>{t.auth.signup.signIn}</Link>
+          </FieldDescription>
+        </FieldGroup>
+      </div>
+    )
   }
 
   return (
@@ -72,9 +89,7 @@ export function SignupForm({
               href="/"
               className="flex flex-col items-center gap-2 font-medium"
             >
-              <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEndIcon className="size-6" />
-              </div>
+              <ReturbeMark className="size-10" />
               <span className="sr-only">{t.brand}</span>
             </Link>
             <h1 className="text-xl font-bold">{t.auth.welcome(t.brand)}</h1>

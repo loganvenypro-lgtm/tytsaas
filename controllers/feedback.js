@@ -1,19 +1,11 @@
 import { sendDiscord, truncate } from "../lib/discord.js";
+import { createLimiter } from "../lib/rateLimit.js";
 
 const KINDS = { bug: "🐛 Bug", idea: "💡 Idée", other: "💬 Autre" };
 const MAX_LENGTH = 2000;
-// Per-user throttle, in memory: enough to stop a stuck button or a spammer
-const WINDOW_MS = 10 * 60_000;
-const MAX_PER_WINDOW = 5;
-const recent = new Map();
-
-function throttled(userId) {
-  const now = Date.now();
-  const hits = (recent.get(userId) ?? []).filter((t) => now - t < WINDOW_MS);
-  if (hits.length >= MAX_PER_WINDOW) return true;
-  recent.set(userId, [...hits, now]);
-  return false;
-}
+// Per-user throttle: enough to stop a stuck button or a spammer
+const limiter = createLimiter({ windowMs: 10 * 60_000, max: 5 });
+const throttled = (userId) => limiter.hit(userId) > 0;
 
 /** POST /api/feedback { message, kind, page }: posted to DISCORD_FEEDBACK_WEBHOOK_URL. */
 export async function send(req, res) {

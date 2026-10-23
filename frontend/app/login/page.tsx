@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 
+import { AuthShell } from "@/components/auth-shell"
 import { LoginForm } from "@/components/login-form"
 import { getSession } from "@/lib/session"
 import { safeNextPath } from "@/lib/utils"
@@ -11,10 +12,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   if (await getSession()) redirect(next)
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <LoginForm oauthError={typeof error === "string" ? error : undefined} next={next} />
-      </div>
-    </div>
+    <AuthShell>
+      <LoginForm oauthError={typeof error === "string" ? error : undefined} next={next} />
+    </AuthShell>
   )
 }

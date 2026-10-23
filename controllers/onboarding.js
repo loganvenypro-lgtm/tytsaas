@@ -1,12 +1,17 @@
 import { sql } from "../lib/sql.js";
 import { NICHE_BY_ID } from "../lib/taxonomy/index.js";
 import { createBudget, youtubeApi } from "../lib/youtube.js";
+import { createLimiter } from "../lib/rateLimit.js";
 import { compact, sendDiscord, stamp, truncate } from "../lib/discord.js";
 
 const ROLES = ["creator", "agency", "brand", "aspiring"];
 const ROLE_LABELS = { creator: "YouTubeur", agency: "Agence / manager", brand: "Marque / sponsor", aspiring: "Se lance" };
 
 const num = (value) => (value != null ? Number(value) : null);
+
+// Channel lookups that miss the database cost a YouTube quota unit each (here and
+// in channelLookup.js): capped per user so one account can't drain the daily quota
+export const youtubeLookups = createLimiter({ windowMs: 60 * 60_000, max: 30 });
 
 /** "https://youtube.com/@fern-tv/videos", "@fern-tv", "UC…" or a name → what to look up. */
 export function parseChannelInput(raw) {
@@ -50,6 +55,9 @@ export async function findChannel(req, res) {
   if (row) return res.json({ channel: channelJson(row) });
 
   if (!process.env.YOUTUBE_API_KEY || (!id && !handle)) return res.status(404).json({ error: "Chaîne introuvable." });
+  if (youtubeLookups.hit(req.user.id)) {
+    return res.status(429).json({ error: "Trop de recherches, réessaie dans quelques minutes.", code: "rate_limited" });
+  }
   try {
     const data = await youtubeApi(
       "channels",

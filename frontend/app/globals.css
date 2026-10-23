@@ -499,6 +499,57 @@ body {
   }
 }
 
+/* --- Landing redesign (/welcome3): light page, Archivo, the outlier bar breaking out of the hero chart --- */
+.w3-root {
+  color-scheme: light;
+  font-family: var(--font-w3), ui-sans-serif, system-ui, sans-serif;
+}
+
+.w3-wide {
+  font-stretch: 125%;
+}
+
+.w3-root :focus-visible {
+  outline: 2px solid #16171b;
+  outline-offset: 3px;
+}
+
+.w3-root .w3-dark :focus-visible {
+  outline-color: #ffffff;
+}
+
+.w3-bar {
+  transform-origin: bottom;
+  animation: w3Grow 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.w3-burst {
+  transform-origin: bottom;
+  animation: w3Grow 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.7s both;
+}
+
+.w3-label {
+  animation: w3Label 0.5s ease-out 1.7s both;
+}
+
+@keyframes w3Grow {
+  from { transform: scaleY(0); }
+}
+
+@keyframes w3Label {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.w3-root) {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .w3-bar, .w3-burst, .w3-label { animation: none; }
+}
+
 /* --- Onboarding (/onboarding): steps fading in --- */
 @keyframes obIn {
   from { opacity: 0; transform: translateY(12px); filter: blur(4px); }

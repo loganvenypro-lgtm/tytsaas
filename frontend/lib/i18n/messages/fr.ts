@@ -306,8 +306,8 @@ const fr = {
       pending: "Création du compte…",
       failed: "Impossible de créer le compte.",
       mismatch: "Les deux mots de passe ne correspondent pas.",
-      created: "Compte créé",
-      createdDescription: (brand: string) => `Bienvenue sur ${brand} !`,
+      checkEmailTitle: "Confirme ton email",
+      checkEmail: (email: string) => `On vient d'envoyer un lien à ${email}. Clique dessus pour activer ton compte (valable 1 heure).`,
     },
     orContinueWith: "Ou",
     social: {
@@ -338,6 +338,8 @@ const fr = {
       PASSWORD_TOO_LONG: "Le mot de passe est trop long.",
       USER_ALREADY_EXISTS: "Un compte existe déjà avec cet email.",
       USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Un compte existe déjà avec cet email.",
+      EMAIL_NOT_VERIFIED: "Confirme d'abord ton email : on vient de t'envoyer un nouveau lien.",
+      TOO_MANY_REQUESTS: "Trop de tentatives, réessaie dans quelques minutes.",
     } as Record<string, string>,
   },
 
@@ -488,6 +490,11 @@ const fr = {
       views: "Vues",
       velocity: "Vues/h",
       usual: "Normale",
+      vsUsual: (views: string) => `contre ${views} d'habitude`,
+      viewsCount: (views: string) => `${views} vues`,
+      perHour: (views: string) => `${views} / h`,
+      multiplierHint: "Vues de la vidéo divisées par les vues habituelles de la chaîne",
+      engagementHint: "Engagement : likes et commentaires rapportés aux vues",
       scoreHint: "Score de pertinence : multiplicateur, vues, ratio vues/abonnés et fraîcheur",
       moreLikeThis: "Plus comme ça :",
       moreTopic: "Sujet",
@@ -1540,6 +1547,98 @@ const fr = {
       ledgerVideo: "Vidéo",
       ledgerViews: "Vues comparées à la médiane de la chaîne",
       ledgerScore: "Score",
+    },
+    // /welcome3 only
+    v3: {
+      skip: "Aller au contenu",
+      nav: { tools: "Outils", niches: "Niches", pricing: "Tarifs", faq: "FAQ" },
+      hero: {
+        badge: (n: string) => `${n} chaînes YouTube suivies chaque jour`,
+        title: "Trouve ta prochaine vidéo à ×10.",
+        subtitle: (brand: string) =>
+          `${brand} compare chaque vidéo à la médiane de sa chaîne. Tu vois les sujets qui font 10, 50 ou 100 fois plus de vues que d'habitude, dans ta niche, avant les autres.`,
+        inputLabel: "Le lien ou le nom de ta chaîne YouTube",
+        inputPlaceholder: "youtube.com/@ta-chaine",
+        submit: "Analyser ma chaîne",
+        reassurance: "Gratuit, sans carte bancaire, sans connecter ton compte YouTube.",
+        chartTitle: "12 dernières vidéos de la chaîne",
+        median: "médiane de la chaîne",
+        times: (n: string) => `${n} fois plus de vues que d'habitude`,
+        pick: "Choisir un autre outlier",
+      },
+      creators: (brand: string) => `Des chaînes dont ${brand} a repéré les outliers`,
+      versus: {
+        title: "Arrête de choisir tes sujets au feeling.",
+        without: "Sans données",
+        with: (brand: string) => `Avec ${brand}`,
+        withoutItems: [
+          "Une semaine de tournage misée sur une intuition",
+          "Les tendances arrivent quand elles sont déjà saturées",
+          "Tu copies des chaînes de 20 M d'abonnés qui ne t'apprennent rien",
+          "Des mots-clés qui disent ce qu'on tape, pas ce qu'on regarde",
+          "Des heures à scroller YouTube pour trouver une idée",
+        ],
+        withItems: [
+          "Des sujets qui ont déjà fait ×10 sur des chaînes comme la tienne",
+          "Les signaux frais de ta niche, mis à jour chaque jour",
+          "Les petites chaînes qui explosent ressortent autant que les géants",
+          "Les titres et miniatures qui font cliquer, côte à côte",
+          "Une liste d'idées prête en quelques minutes",
+        ],
+      },
+      niches: {
+        title: "Choisis une niche. Voilà ce qui explose.",
+        subtitle: (brand: string) => `Ces vidéos viennent directement de l'index de ${brand}. Rien n'est mis en scène.`,
+        cta: "Explorer toutes les niches",
+      },
+      tools: {
+        title: "Tout ce qu'il faut pour décider de ta prochaine vidéo.",
+        subtitle: "Recherche, veille et emballage, tout est branché sur le même index de vidéos qui surperforment.",
+        topVideos: "Top vidéos",
+        topVideosText: "Des milliers de vidéos classées par score d'outlier, filtrables par format, durée et taille de chaîne.",
+        opportunity: "Score d'opportunité",
+        rising: "En hausse cette semaine",
+      },
+      steps: { title: "De zéro idée à ton prochain tournage, en trois étapes." },
+      pricing: {
+        title: "Moins cher qu'une vidéo ratée.",
+        subtitle: "Tous les outils de recherche dès Starter. Change de plan ou annule quand tu veux.",
+        yearlyBadge: "2 mois offerts",
+      },
+      faq: {
+        title: "Avant que tu demandes",
+        items: [
+          {
+            q: "C'est quoi exactement un outlier ?",
+            a: "Une vidéo qui fait beaucoup plus de vues que la médiane de sa chaîne. Un score de ×20 veut dire 20 fois plus de vues qu'une vidéo habituelle de cette chaîne.",
+          },
+          {
+            q: "Ça marche pour une petite chaîne ou une chaîne faceless ?",
+            a: "Oui, c'est même là que ça marche le mieux. Chaque vidéo est comparée à sa propre chaîne, donc les petites chaînes qui explosent ressortent autant que les grosses.",
+          },
+          {
+            q: "Faut-il connecter mon compte YouTube ?",
+            a: "Non. Le nom ou le lien de ta chaîne suffit. On n'a jamais accès à ton compte.",
+          },
+          {
+            q: "D'où viennent les données, et sont-elles à jour ?",
+            a: "Des données publiques de YouTube, collectées en continu. Les vues, les scores et les tendances sont recalculés chaque jour.",
+          },
+          {
+            q: "Quelles langues et quelles niches ?",
+            a: "Toutes. L'interface est en français et en anglais, et l'index couvre des vidéos de toutes les langues et de tous les sujets.",
+          },
+          {
+            q: "Je peux annuler quand je veux ?",
+            a: "Oui, sans engagement. Tu annules en un clic et tu gardes l'accès jusqu'à la fin de la période payée. Si l'outil ne te sert pas, écris-nous dans les 7 jours : on te rembourse.",
+          },
+        ],
+      },
+      final: {
+        title: "Ta prochaine vidéo à ×10 existe déjà.",
+        text: (brand: string) =>
+          `Quelqu'un l'a faite avant toi, dans une autre niche ou une autre langue. ${brand} te la montre.`,
+      },
     },
   },
 

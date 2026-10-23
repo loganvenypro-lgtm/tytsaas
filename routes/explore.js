@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireUser } from "../lib/admin.js";
+import { limitPerUser } from "../lib/rateLimit.js";
 import * as videos from "../controllers/videos.js";
 import * as channels from "../controllers/channels.js";
 import * as channelLookup from "../controllers/channelLookup.js";
@@ -25,6 +26,10 @@ import * as feedback from "../controllers/feedback.js";
 
 const router = Router();
 
+// Routes that cost CPU (CLIP embeddings of a video the worker hasn't seen) or money (Groq)
+const similarLimit = limitPerUser({ windowMs: 10 * 60_000, max: 60 });
+const aiLimit = limitPerUser({ windowMs: 60 * 60_000, max: 30, message: "Limite d'aide IA atteinte, réessaie dans un moment." });
+
 // Guarded per route: this router is mounted on /api, a router-wide guard would catch every /api path
 // Public: the landing page (/welcome) is shown to signed-out visitors
 router.get("/landing", landing);
@@ -35,6 +40,8 @@ router.get("/home", requireUser, home.home);
 router.post("/feedback", requireUser, feedback.send);
 router.post("/account/youtube/disconnect", requireUser, account.disconnectYouTube);
 router.delete("/account", requireUser, account.deleteAccount);
+router.get("/account/sessions", requireUser, account.listSessions);
+router.delete("/account/sessions/:sessionId", requireUser, account.revokeSession);
 router.get("/weekly-digest", requireUser, weeklyDigest);
 router.get("/digest-settings", requireUser, digestSettings.get);
 router.put("/digest-settings", requireUser, digestSettings.update);
@@ -43,7 +50,7 @@ router.get("/filters/videos", requireUser, filters.videoFilters);
 router.get("/filters/channels", requireUser, filters.channelFilters);
 router.get("/taxonomy", requireUser, filters.taxonomy);
 router.get("/videos/top", requireUser, videos.topVideos);
-router.get("/videos/similar", requireUser, similarVideos);
+router.get("/videos/similar", requireUser, similarLimit, similarVideos);
 router.get("/keywords", requireUser, keywords.search);
 router.get("/videos/:videoId/variants", requireUser, videos.variants);
 router.get("/videos/:videoId/thumbnails/:version", requireUser, videos.thumbnailImage);
@@ -106,7 +113,7 @@ router.delete("/folders/:folderId/items", requireUser, folders.removeItem);
 router.post("/folders/:folderId/items/:videoId/notes", requireUser, folders.addNote);
 router.patch("/folders/:folderId/notes/:noteId", requireUser, folders.updateNote);
 router.delete("/folders/:folderId/notes/:noteId", requireUser, folders.removeNote);
-router.post("/folders/:folderId/items/:videoId/notes/assist", requireUser, folders.assistNote);
+router.post("/folders/:folderId/items/:videoId/notes/assist", requireUser, aiLimit, folders.assistNote);
 // The MCP server authenticates with the user's MCP key, not the session cookie
 router.all("/mcp", mcp.handle);
 router.get("/mcp-keys", requireUser, mcp.listKeys);
