@@ -448,6 +448,35 @@ body {
   from { opacity: 0; transform: translateY(12px); filter: blur(4px); }
 }
 
+/* Landing product preview: placeholders, a search bar filling up, then the cards one by one */
+.lp-skeleton {
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 40%, #f1f5f9 80%) 0 0 / 250% 100%;
+  animation: lpShimmer 1.4s linear infinite;
+}
+
+@keyframes lpShimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -150% 0; }
+}
+
+.lp-load-bar {
+  transform-origin: left;
+  animation: lpLoadBar 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes lpLoadBar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.lp-card-in {
+  animation: lpCardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes lpCardIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); filter: blur(4px); }
+}
+
 .lp-root {
   scroll-behavior: smooth;
 }
@@ -455,6 +484,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .lp-reveal { opacity: 1; transform: none; filter: none; transition: none; }
   .lp-aurora, .lp-marquee, .lp-float, .lp-caret, .lp-pulse, .lp-swap, .lp-shine::after { animation: none; }
+  .lp-skeleton, .lp-load-bar, .lp-card-in { animation: none; }
   .lp-grow-x { transform: none; }
   .lp-gauge { stroke-dashoffset: 41; }
   .lp-draw { stroke-dashoffset: 0; }

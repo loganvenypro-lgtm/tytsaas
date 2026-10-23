@@ -1342,6 +1342,7 @@ const en: Messages = {
       title: "Outliers",
       subtitle: "Videos outperforming their channel",
       filters: ["Long-form", "Outlier ≥ 10×", "All channels", "Sort: viral score"],
+      loading: "Best outliers today",
     },
     problem: {
       eyebrow: "The problem",

@@ -1351,6 +1351,7 @@ const fr = {
       title: "Outliers",
       subtitle: "Vidéos qui surperforment leur chaîne",
       filters: ["Format long", "Outlier ≥ 10×", "Toutes chaînes", "Tri : score viral"],
+      loading: "Meilleurs outliers du jour",
     },
     problem: {
       eyebrow: "Le problème",

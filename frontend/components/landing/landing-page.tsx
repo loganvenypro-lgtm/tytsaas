@@ -465,6 +465,31 @@ function AppFrame({ videos }: { videos: LandingVideo[] }) {
   const { t } = useI18n()
   const p = t.landing.preview
   const sideIcons = [LayoutGrid, Flame, TrendingUp, Compass, ImageIcon, Type, Wallet]
+  const gridRef = useRef<HTMLDivElement>(null)
+  // Plays a search once the frame is on screen: placeholders, "Best outliers today", then the results
+  const [phase, setPhase] = useState<"idle" | "loading" | "done">("idle")
+
+  useEffect(() => {
+    const el = gridRef.current
+    if (!el) return
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        observer.disconnect()
+        if (reduced) return setPhase("done")
+        setPhase("loading")
+        timer = setTimeout(() => setPhase("done"), 1700)
+      },
+      { threshold: 0.35 }
+    )
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      clearTimeout(timer)
+    }
+  }, [])
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_40px_100px_-30px_rgba(15,23,42,0.25)]">
@@ -505,13 +530,47 @@ function AppFrame({ videos }: { videos: LandingVideo[] }) {
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 lg:grid-cols-3">
+          <div ref={gridRef} className="relative mt-5 grid grid-cols-2 gap-x-4 gap-y-5 lg:grid-cols-3">
             {videos.map((v, i) => (
-              <div key={v.id} className={cn(i >= 4 && "hidden lg:block")}>
-                <VideoCard video={v} />
+              // The cards stay laid out while hidden, so the frame keeps its height when they come in
+              <div key={v.id} className={cn("relative", i >= 4 && "hidden lg:block")}>
+                <div className={phase === "done" ? "lp-card-in" : "invisible"} style={{ animationDelay: `${i * 70}ms` }}>
+                  <VideoCard video={v} />
+                </div>
+                {phase !== "done" && <PreviewCardSkeleton />}
               </div>
             ))}
+            {phase === "loading" && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center" role="status">
+                <div className="lp-swap w-60 rounded-2xl border border-slate-200 bg-white/95 px-5 py-4 shadow-[0_20px_50px_-20px_rgba(15,23,42,0.35)] backdrop-blur">
+                  <p className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-900">
+                    <Flame className="lp-pulse size-4 text-[#e3061a]" />
+                    {p.loading}
+                  </p>
+                  <div className="mt-3 h-1 overflow-hidden rounded-full bg-slate-100">
+                    <div className="lp-load-bar h-full rounded-full bg-[#e3061a]" />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** A card's shape (thumbnail, avatar, two lines) while the preview "searches". */
+function PreviewCardSkeleton() {
+  return (
+    <div aria-hidden className="absolute inset-0 flex flex-col gap-2.5">
+      <div className="lp-skeleton aspect-video w-full rounded-xl" />
+      <div className="flex gap-2.5">
+        <div className="lp-skeleton size-7 shrink-0 rounded-full" />
+        <div className="flex flex-1 flex-col gap-1.5 pt-0.5">
+          <div className="lp-skeleton h-3 w-11/12 rounded" />
+          <div className="lp-skeleton h-3 w-2/3 rounded" />
+          <div className="lp-skeleton h-2.5 w-1/2 rounded" />
         </div>
       </div>
     </div>
