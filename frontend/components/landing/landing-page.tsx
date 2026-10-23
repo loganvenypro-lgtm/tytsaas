@@ -1334,30 +1334,39 @@ function useLoop(ms: number) {
 }
 
 /**
- * Step 2, on a loop: three tall cuts of real outliers; every couple of seconds one column
- * swaps to the next outlier of the index and gets the red "spotted" ring.
+ * Step 2, on a loop: a fan of real outliers in their own 16:9 frame. The spotted one sits
+ * in front, whole and ringed in red; every couple of seconds the next one takes its place.
  */
 function StepNiche({ videos }: { videos: LandingVideo[] }) {
   const pool = videos.slice(0, 12)
   const tick = useLoop(2200)
   if (pool.length < 3) return null
-  // Tick t swaps column t % 3; a column that has swapped n times shows pool[col + 3n]
-  const active = tick % 3
-  const slots = [0, 1, 2].map((col) => pool[(col + 3 * Math.floor((tick + ((3 - col) % 3)) / 3)) % pool.length])
+  const at = (offset: number) => pool[(tick + offset) % pool.length]
+  // Back cards first so the front one paints over them
+  const slots = [
+    { video: at(1), className: "w-44 -translate-x-[50%] -rotate-[7deg] translate-y-2 opacity-80" },
+    { video: at(2), className: "w-44 translate-x-[50%] rotate-[7deg] translate-y-2 opacity-80" },
+    {
+      video: at(0),
+      className: "z-10 w-56 -translate-y-2 ring-2 ring-[#e3061a] shadow-[0_18px_40px_-14px_rgba(227,6,26,0.55)]",
+    },
+  ]
 
   return (
-    <div className="absolute inset-x-0 top-6 flex justify-center gap-2.5 [mask-image:linear-gradient(180deg,#000_55%,transparent)]">
-      {slots.map((v, i) => (
+    <div className="absolute inset-0 flex items-center justify-center">
+      {/* Every thumbnail of the loop loads up front, so a swap never shows an empty frame */}
+      <div className="hidden">
+        {pool.map((v) => (
+          <img key={v.id} src={v.thumbnail} alt="" />
+        ))}
+      </div>
+      {slots.map(({ video: v, className }, i) => (
         <div
           key={i}
-          className={cn(
-            "relative h-56 w-28 shrink-0 overflow-hidden rounded-2xl ring-2 transition-[box-shadow,ring-color] duration-500",
-            i === 1 ? "mt-0" : "mt-6",
-            tick > 0 && i === active ? "ring-[#e3061a] shadow-[0_10px_30px_-10px_rgba(227,6,26,0.6)]" : "ring-transparent"
-          )}
+          className={cn("absolute aspect-video overflow-hidden rounded-xl bg-slate-200 shadow-[0_12px_30px_-14px_rgba(15,23,42,0.45)]", className)}
         >
-          <img key={v.id} src={v.thumbnail} alt="" loading="lazy" className="lp-swap size-full object-cover" />
-          <span key={`${v.id}-x`} className="lp-swap absolute top-2 left-2 rounded-md bg-[#e3061a] px-1.5 py-0.5 text-[10px] font-bold text-white">
+          <img key={v.id} src={v.thumbnail} alt="" className="lp-swap size-full object-cover" />
+          <span key={`${v.id}-x`} className="lp-swap absolute top-1.5 left-1.5 rounded-md bg-[#e3061a] px-1.5 py-0.5 text-[10px] font-bold text-white">
             {formatMultiplier(v.outlierMultiplier)}
           </span>
         </div>
