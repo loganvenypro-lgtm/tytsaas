@@ -6,7 +6,7 @@ name: Discord changelog
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/worker-v2-niche-finder]
 
 jobs:
   notify:
