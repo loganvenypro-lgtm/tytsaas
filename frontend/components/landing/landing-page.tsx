@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 
 import { useI18n } from "@/components/i18n-provider"
+import { DemoVideoButton } from "@/components/demo-video"
 import { ReturbeMark } from "@/components/returbe-logo"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
@@ -245,15 +246,12 @@ function Hero({ videos, creators, stats }: { videos: LandingVideo[]; creators: L
         </Reveal>
 
         <Reveal delay={300} className="relative z-10 mt-10 flex justify-center">
-          <a
-            href="#demo"
-            className="group inline-flex items-center gap-2 rounded-full bg-[#0a0a0c]/80 py-1 pr-3 pl-1 text-sm font-medium text-white/80 ring-1 ring-white/10 backdrop-blur hover:text-white"
-          >
+          <DemoVideoButton title={h.demo} className="group inline-flex items-center gap-2 rounded-full bg-[#0a0a0c]/80 py-1 pr-3 pl-1 text-sm font-medium text-white/80 ring-1 ring-white/10 backdrop-blur hover:text-white">
             <span className="flex size-7 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15 transition-transform group-hover:scale-110">
               <Play className="size-3 fill-white text-white" />
             </span>
-            {h.demo} <span className="text-xs text-white/40">{h.demoLive}</span>
-          </a>
+            {h.demo}
+          </DemoVideoButton>
         </Reveal>
 
         {/* Leaves room for the second row of thumbnails under the button */}

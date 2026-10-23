@@ -2,8 +2,10 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
 
 import { useI18n } from "@/components/i18n-provider"
+import { DemoVideoButton } from "@/components/demo-video"
 import { ReturbeMark } from "@/components/returbe-logo"
 import { LOCALES, saveLocale } from "@/lib/i18n"
 import { GOOGLE_PRIVACY_URL, LEGAL, YOUTUBE_TERMS_URL } from "@/lib/legal"
@@ -26,12 +28,103 @@ function Arc({ className, turn = 0 }: { className?: string; turn?: number }) {
   )
 }
 
+// A channel's last uploads as bars around their median; the one under the pointer becomes the outlier
+const BARS = Array.from({ length: 48 }, (_, i) => 18 + ((i * 37) % 23))
+const MULTIPLIERS = Array.from({ length: 48 }, (_, i) => 6 + ((i * 53) % 90))
+
+function OutlierSignature({ brand, hot, onHot }: { brand: string; hot: number; onHot: (i: number) => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [shown, setShown] = useState(false)
+  // Staggered growth on the first reveal only; hovering afterwards answers at once
+  const [settled, setSettled] = useState(false)
+
+  // Bars grow in once, when the footer scrolls into view
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    let timer: ReturnType<typeof setTimeout>
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        setShown(true)
+        timer = setTimeout(() => setSettled(true), 1200)
+        io.disconnect()
+      },
+      { threshold: 0.3 }
+    )
+    io.observe(el)
+    return () => {
+      io.disconnect()
+      clearTimeout(timer)
+    }
+  }, [])
+
+  function pick(clientX: number) {
+    const rect = ref.current!.getBoundingClientRect()
+    onHot(Math.min(BARS.length - 1, Math.max(0, Math.floor(((clientX - rect.left) / rect.width) * BARS.length))))
+  }
+
+  return (
+    <div aria-hidden className="relative mx-auto mt-14 max-w-6xl select-none">
+      <div
+        ref={ref}
+        onPointerMove={(e) => pick(e.clientX)}
+        onPointerDown={(e) => pick(e.clientX)}
+        className="relative flex h-44 items-end gap-[3px] px-1 sm:h-56"
+      >
+        {/* Median of the channel */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-[26%] border-t border-dashed border-slate-300" />
+        {BARS.map((h, i) => {
+          const isHot = i === hot
+          return (
+            <div key={i} className="relative flex h-full flex-1 items-end">
+              <div
+                className={cn(
+                  "relative w-full rounded-t-[3px] transition-[height,background-color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
+                  isHot ? "bg-gradient-to-t from-[#b8000f] to-[#ff3b45]" : "bg-slate-300/70"
+                )}
+                style={{ height: shown ? `${isHot ? 92 : h}%` : "0%", transitionDelay: settled ? "0ms" : `${i * 12}ms` }}
+              >
+                {isHot && shown && (
+                  <span className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 -translate-y-full rounded-md bg-[#e3061a] px-1.5 py-0.5 text-[11px] font-bold whitespace-nowrap text-white shadow-[0_6px_16px_-6px_rgba(227,6,26,0.7)]">
+                    ×{MULTIPLIERS[i]}
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {/* The wordmark the bars stand on, fading into the page */}
+      <p className="-mt-px bg-gradient-to-b from-slate-300 to-transparent bg-clip-text text-center text-[clamp(4rem,19vw,15rem)] leading-[0.8] font-bold tracking-[-0.06em] text-transparent">
+        {brand}
+      </p>
+    </div>
+  )
+}
+
+/** A small red "video" set inside the headline, carrying the multiplier of the bar being pointed at. */
+function OutlierPill({ multiplier }: { multiplier: number }) {
+  return (
+    <span
+      aria-hidden
+      className="relative mx-1 inline-flex h-[1em] -translate-y-[0.06em] -rotate-3 items-center gap-[0.14em] rounded-[0.24em] bg-gradient-to-br from-[#ff3b45] to-[#b8000f] px-[0.3em] align-middle text-[0.5em] font-bold text-white shadow-[0_10px_24px_-10px_rgba(227,6,26,0.8)] transition-transform hover:rotate-0"
+    >
+      <span className="size-0 border-y-[0.32em] border-l-[0.5em] border-y-transparent border-l-white" />
+      <span key={multiplier} className="lp-swap tabular-nums">×{multiplier}</span>
+    </span>
+  )
+}
+
 /** Closing call to action and footer of every public page (landing, blog, legal), with the YouTube API notice. */
 export function SiteFooter() {
   const { t, locale } = useI18n()
   const router = useRouter()
   const f = t.siteFooter
   const cta = t.landing.finalCta
+  // The outlier bar under the pointer; its multiplier also shows in the headline
+  const [hot, setHot] = useState(33)
+  const words = cta.title.split(" ")
 
   const nav = [
     { href: "/welcome#features", label: f.features },
@@ -59,7 +152,9 @@ export function SiteFooter() {
 
       <div className="relative rounded-[2rem] border border-slate-200/70 bg-white px-6 pt-20 pb-8 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:px-12 sm:pt-24">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-4xl leading-[1.05] font-semibold tracking-[-0.035em] text-balance text-slate-950 sm:text-6xl">{cta.title}</h2>
+          <h2 className="text-4xl leading-[1.05] font-semibold tracking-[-0.035em] text-balance text-slate-950 sm:text-6xl">
+            {words.slice(0, -2).join(" ")} <OutlierPill multiplier={MULTIPLIERS[hot]} /> {words.slice(-2).join(" ")}
+          </h2>
           <p className="mx-auto mt-5 max-w-lg text-lg text-pretty text-slate-500">{cta.text(t.brand)}</p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
@@ -68,12 +163,9 @@ export function SiteFooter() {
             >
               {cta.signUp}
             </Link>
-            <Link
-              href="/welcome#demo"
-              className="rounded-full bg-slate-100 px-6 py-3 font-medium text-slate-800 transition-colors hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e3061a]"
-            >
+            <DemoVideoButton title={cta.demo} className="rounded-full bg-slate-100 px-6 py-3 font-medium text-slate-800 transition-colors hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e3061a]">
               {cta.demo}
-            </Link>
+            </DemoVideoButton>
           </div>
         </div>
 
@@ -149,6 +241,7 @@ export function SiteFooter() {
         </p>
       </div>
       </div>
+      <OutlierSignature brand={t.brand} hot={hot} onHot={setHot} />
     </footer>
   )
 }
