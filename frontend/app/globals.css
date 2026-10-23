@@ -5,6 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-text: var(--brand-text);
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
   --font-manrope: var(--font-manrope);
@@ -78,6 +81,10 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
+  /* Returbe red, from the logo (components/returbe-logo.tsx) */
+  --brand: #e3061a;
+  --brand-strong: #c8000f;
+  --brand-text: #c8000f;
   --primary-foreground: oklch(0.9796 0.0017 67.8);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -113,6 +120,9 @@
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.9796 0.0017 67.8);
   --primary: oklch(0.922 0 0);
+  --brand: #ff1f26;
+  --brand-strong: #e3061a;
+  --brand-text: #ff5a60;
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.9796 0.0017 67.8);
@@ -505,4 +515,9 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .ob-in, .ob-pop { animation: none; }
+}
+
+/* Onboarding: a soft glow of the brand red behind the top of the page */
+.ob-glow {
+  background: radial-gradient(60% 40% at 50% 0%, color-mix(in oklab, var(--brand) 12%, transparent), transparent 70%);
 }

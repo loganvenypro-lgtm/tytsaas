@@ -5,6 +5,7 @@ import {
   Eye,
   Flame,
   FolderBookmark,
+  Gem,
   Home,
   MonitorPlay,
   Plug,
@@ -62,6 +63,7 @@ export const NAV_SECTIONS: NavSection[] = [
         items: [
           { key: "keywords", url: "/search/keywords" },
           { key: "channelSearch", url: "/search/channels" },
+          { key: "similarVideos", url: "/search/similar-videos" },
           { key: "hashtags", url: "/search/hashtags" },
         ],
       },
@@ -122,6 +124,7 @@ const EXTRA_PAGES: Record<string, Omit<NavItem, "url">> = {
   "/settings": { key: "settings", icon: Settings },
   "/admin": { key: "admin", icon: ShieldCheck },
   "/team": { key: "team", icon: Users },
+  "/pricing": { key: "pricing", icon: Gem },
 }
 
 export function isActive(url: string, pathname: string) {

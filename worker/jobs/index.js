@@ -14,9 +14,11 @@ import { runScores } from "./scores.js";
 import { runTrending } from "./trending.js";
 import { runDiscovery } from "./discovery.js";
 import { runMonetization } from "./monetization.js";
+import { runEmbeddings } from "./embeddings.js";
 import { runTerminated } from "./terminated.js";
 import { runReport } from "./report.js";
 import { runAlerts } from "./alerts.js";
+import { runWeeklyDigest } from "./weeklyDigest.js";
 import { runPurge } from "./purge.js";
 
 export const JOBS = [
@@ -35,6 +37,10 @@ export const JOBS = [
   { name: "purge", everyMinutes: 24 * 60, run: runPurge },
   // Users' alerts, on this tick's fresh stats (no quota)
   { name: "alerts", everyMinutes: 0, run: runAlerts },
+  // Monday's recap for every user; a no-op once this week's editions exist (no quota)
+  { name: "weekly-digest", everyMinutes: 0, run: runWeeklyDigest },
+  // Thumbnail and title vectors for "Similar videos", time-capped, after the user-facing jobs (no quota)
+  { name: "embeddings", everyMinutes: 0, run: runEmbeddings },
   // Last: reads what the other jobs did this tick.
   { name: "report", everyMinutes: 0, run: runReport },
 ];

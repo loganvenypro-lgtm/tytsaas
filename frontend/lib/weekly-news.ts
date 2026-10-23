@@ -1,7 +1,15 @@
 import type { OutlierVideo } from "@/components/top-videos/outlier-card"
 
-/** GET /api/weekly-digest: the creator's last 7 days. */
+/** GET /api/weekly-digest: the latest edition, built by the worker on Monday morning. */
 export type WeeklyDigest = {
+  /** Monday it came out, e.g. "2026-10-19" */
+  edition: string
+  frequency: "weekly" | "monthly"
+  /** When the next edition comes out, null when the user turned the recap off */
+  nextEditionAt: string | null
+  /** The 7 days it covers: [periodStart, periodEnd) */
+  periodStart: string
+  periodEnd: string
   niche: { id: string; label: { fr: string; en: string } } | null
   topVideosSource: "niche" | "competitors" | "all"
   myChannel: {
@@ -24,14 +32,9 @@ export const WEEKLY_NEWS_OPEN_EVENT = "weekly-news:open"
 /** New editions come out on Mondays (0 = Sunday, 1 = Monday…). */
 export const WEEKLY_NEWS_WEEKDAY = 1
 
-/** Edition of the popup: the date of this week's release day, e.g. "2026-10-19". */
+/** This week's release day, e.g. "2026-10-19": once seen, the popup skips the request until next week. */
 export function weeklyEditionId(now = new Date()): string {
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() - WEEKLY_NEWS_WEEKDAY + 7) % 7))
   const pad = (n: number) => String(n).padStart(2, "0")
   return `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`
-}
-
-/** Whole days until the next edition (1 to 7). */
-export function daysUntilNextEdition(now = new Date()): number {
-  return (WEEKLY_NEWS_WEEKDAY - now.getDay() + 7) % 7 || 7
 }

@@ -17,6 +17,7 @@ import { EmptyState, SessionExpiredError, SessionExpiredState, fetchJson } from 
 import { useI18n } from "@/components/i18n-provider";
 import { FollowMenu } from "@/components/inspirations/follow-button";
 import { CountryFlag } from "@/components/country-flag";
+import { CopyPageLinkButton } from "@/components/share/share-link";
 import { type ChannelProfile, type HistoryPoint, type VideoFormat } from "@/lib/channel-search";
 import { cn } from "@/lib/utils";
 import { ChannelVideos } from "./channel-videos";
@@ -64,6 +65,7 @@ function Header({ data }: { data: ChannelProfile }) {
             {channel.videoCount != null && <span>{t.channelSearch.videos(compact(channel.videoCount))}</span>}
             {channel.niche && <Badge variant="secondary">{channel.niche.label[locale]}</Badge>}
             {channel.terminatedAt && <Badge variant="destructive">{th.terminated}</Badge>}
+            <CopyPageLinkButton />
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {channel.createdAt && <span>{th.created(date(channel.createdAt, { month: "long", year: "numeric" }))}</span>}

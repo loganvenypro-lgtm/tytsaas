@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Building2,
   Check,
-  Command,
   Loader2,
   Megaphone,
   Rocket,
@@ -16,6 +15,7 @@ import {
 } from "lucide-react"
 
 import { useI18n } from "@/components/i18n-provider"
+import { ReturbeMark } from "@/components/returbe-logo"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { identifyCurrentUser, track } from "@/lib/analytics"
 import { cn } from "@/lib/utils"
@@ -48,9 +48,9 @@ const STEPS: Step[] = ["role", "channel", "competitors"]
 // Well-known channels to try the search with
 const EXAMPLES = ["@Squeezie", "@veritasium", "@aliabdaal"]
 
-// Calm palette: white surfaces from the theme, blue as the only accent
+// Calm palette: white surfaces from the theme, the brand red (globals.css) as the only accent
 const primaryButton =
-  "inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:pointer-events-none disabled:opacity-40 dark:bg-blue-500 dark:hover:bg-blue-400"
+  "inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm shadow-brand/20 transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:pointer-events-none disabled:opacity-40"
 const linkButton = "text-sm text-muted-foreground transition-colors hover:text-foreground"
 
 function ChannelAvatar({ src, name, className }: { src: string | null; name: string; className?: string }) {
@@ -218,13 +218,11 @@ export function OnboardingFlow() {
   const nicheLabel = niches?.find((n) => n.id === niche)?.label[locale]
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
+    <div className="ob-glow min-h-svh bg-background text-foreground">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-5 sm:px-6">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-blue-600 text-white dark:bg-blue-500">
-            <Command className="size-4" />
-          </span>
-          <span className="text-base font-semibold tracking-tight">{t.brand}</span>
+        <div className="flex items-center gap-2">
+          <ReturbeMark className="size-7" />
+          <span className="text-lg leading-none font-bold tracking-tight">{t.brand}</span>
         </div>
 
         <ol className="hidden items-center gap-2 sm:flex">
@@ -234,16 +232,16 @@ export function OnboardingFlow() {
                 className={cn(
                   "flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition-colors",
                   i === stepIndex
-                    ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/30"
+                    ? "bg-brand/10 text-brand-text ring-1 ring-brand/25"
                     : i < stepIndex
-                      ? "text-blue-600 dark:text-blue-400"
+                      ? "text-brand-text"
                       : "text-muted-foreground"
                 )}
               >
                 <span
                   className={cn(
                     "flex size-4 items-center justify-center rounded-full text-[10px] font-semibold",
-                    i <= stepIndex ? "bg-blue-600 text-white dark:bg-blue-500" : "bg-muted text-muted-foreground"
+                    i <= stepIndex ? "bg-brand text-white" : "bg-muted text-muted-foreground"
                   )}
                 >
                   {i < stepIndex ? <Check className="size-2.5" strokeWidth={3} /> : i + 1}
@@ -264,7 +262,7 @@ export function OnboardingFlow() {
         {/* Step 1: who are you */}
         {step === "role" && (
           <section className="mx-auto max-w-2xl pt-8 text-center sm:pt-14">
-            <p className="ob-in text-xs font-semibold tracking-[0.16em] text-blue-600 uppercase dark:text-blue-400">{o.stepOf(1, 3)}</p>
+            <p className="ob-in text-xs font-semibold tracking-[0.16em] text-brand-text uppercase">{o.stepOf(1, 3)}</p>
             <h1 className="ob-in mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl" style={{ animationDelay: "60ms" }}>
               {o.role.title(t.brand)}
             </h1>
@@ -286,14 +284,14 @@ export function OnboardingFlow() {
                     className={cn(
                       "ob-in group flex items-center gap-4 rounded-xl border bg-card p-4 text-left transition-colors",
                       active
-                        ? "border-blue-500 bg-blue-50/60 ring-1 ring-blue-500/20 dark:border-blue-400 dark:bg-blue-500/10"
-                        : "hover:border-blue-300 dark:hover:border-blue-500/40"
+                        ? "border-brand bg-brand/5 ring-1 ring-brand/20"
+                        : "hover:border-brand/40"
                     )}
                   >
                     <span
                       className={cn(
                         "flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors",
-                        active ? "bg-blue-600 text-white dark:bg-blue-500" : "bg-muted text-muted-foreground group-hover:text-foreground"
+                        active ? "bg-brand text-white" : "bg-muted text-muted-foreground group-hover:text-foreground"
                       )}
                     >
                       <r.icon className="size-5" />
@@ -305,7 +303,7 @@ export function OnboardingFlow() {
                     <span
                       className={cn(
                         "flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors",
-                        active ? "border-blue-600 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-500" : "border-border"
+                        active ? "border-brand bg-brand text-white" : "border-border"
                       )}
                     >
                       {active && <Check className="size-3" strokeWidth={3} />}
@@ -327,7 +325,7 @@ export function OnboardingFlow() {
             <button type="button" onClick={() => setStep("role")} className={cn(linkButton, "ob-in mb-6 inline-flex items-center gap-1.5")}>
               <ArrowLeft className="size-3.5" /> {o.back}
             </button>
-            <p className="ob-in text-xs font-semibold tracking-[0.16em] text-blue-600 uppercase dark:text-blue-400">{o.stepOf(2, 3)}</p>
+            <p className="ob-in text-xs font-semibold tracking-[0.16em] text-brand-text uppercase">{o.stepOf(2, 3)}</p>
             <h1 className="ob-in mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl" style={{ animationDelay: "60ms" }}>
               {noChannel ? o.channel.titles.aspiring : o.channel.titles[role]}
             </h1>
@@ -348,7 +346,7 @@ export function OnboardingFlow() {
                     e.preventDefault()
                     searchChannel()
                   }}
-                  className="flex items-center gap-2 rounded-xl border bg-card p-1.5 shadow-sm transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20"
+                  className="flex items-center gap-2 rounded-xl border bg-card p-1.5 shadow-sm transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20"
                 >
                   <Search className="ml-2 size-4 shrink-0 text-muted-foreground" />
                   <label htmlFor="onboarding-channel" className="sr-only">
@@ -369,7 +367,7 @@ export function OnboardingFlow() {
                 </form>
 
                 {channel ? (
-                  <div className="ob-pop mt-5 flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50/50 p-4 text-left dark:border-blue-500/30 dark:bg-blue-500/10">
+                  <div className="ob-pop mt-5 flex items-center gap-3 rounded-xl border border-brand/30 bg-brand/5 p-4 text-left">
                     <ChannelAvatar src={channel.avatar} name={channel.name} className="size-12" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{channel.name}</p>
@@ -382,9 +380,9 @@ export function OnboardingFlow() {
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
-                      {!channel.inDatabase && <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">{o.channel.notScanned}</p>}
+                      {!channel.inDatabase && <p className="mt-1 text-xs text-brand-text">{o.channel.notScanned}</p>}
                     </div>
-                    <Check className="size-5 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <Check className="size-5 shrink-0 text-brand-text" />
                   </div>
                 ) : (
                   <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs">
@@ -394,7 +392,7 @@ export function OnboardingFlow() {
                         key={handle}
                         type="button"
                         onClick={() => searchChannel(handle)}
-                        className="rounded-full border bg-card px-3 py-1 text-muted-foreground transition-colors hover:border-blue-300 hover:text-foreground dark:hover:border-blue-500/40"
+                        className="rounded-full border bg-card px-3 py-1 text-muted-foreground transition-colors hover:border-brand/40 hover:text-foreground"
                       >
                         {handle}
                       </button>
@@ -419,8 +417,8 @@ export function OnboardingFlow() {
                         className={cn(
                           "rounded-full border px-3.5 py-1.5 text-sm transition-colors",
                           niche === n.id
-                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-500/10 dark:text-blue-300"
-                            : "bg-card text-muted-foreground hover:border-blue-300 hover:text-foreground dark:hover:border-blue-500/40"
+                            ? "border-brand bg-brand/10 text-brand-text"
+                            : "bg-card text-muted-foreground hover:border-brand/40 hover:text-foreground"
                         )}
                       >
                         {n.label[locale]}
@@ -449,7 +447,7 @@ export function OnboardingFlow() {
               <button type="button" onClick={() => setStep("channel")} className={cn(linkButton, "ob-in mb-6 inline-flex items-center gap-1.5")}>
                 <ArrowLeft className="size-3.5" /> {o.back}
               </button>
-              <p className="ob-in text-xs font-semibold tracking-[0.16em] text-blue-600 uppercase dark:text-blue-400">{o.stepOf(3, 3)}</p>
+              <p className="ob-in text-xs font-semibold tracking-[0.16em] text-brand-text uppercase">{o.stepOf(3, 3)}</p>
               <h1 className="ob-in mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl" style={{ animationDelay: "60ms" }}>
                 {noChannel && nicheLabel ? o.competitors.nicheTitle(nicheLabel) : o.competitors.title}
               </h1>
@@ -480,8 +478,8 @@ export function OnboardingFlow() {
                       className={cn(
                         "ob-in flex items-center gap-3 rounded-xl border bg-card p-3 text-left transition-colors",
                         active
-                          ? "border-blue-500 bg-blue-50/60 dark:border-blue-400 dark:bg-blue-500/10"
-                          : "hover:border-blue-300 dark:hover:border-blue-500/40"
+                          ? "border-brand bg-brand/5"
+                          : "hover:border-brand/40"
                       )}
                     >
                       <ChannelAvatar src={c.avatar} name={c.name} className="size-10" />
@@ -494,7 +492,7 @@ export function OnboardingFlow() {
                       <span
                         className={cn(
                           "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
-                          active ? "bg-blue-600 text-white dark:bg-blue-500" : "border text-muted-foreground"
+                          active ? "bg-brand text-white" : "border text-muted-foreground"
                         )}
                       >
                         {active && <Check className="size-3" strokeWidth={3} />}

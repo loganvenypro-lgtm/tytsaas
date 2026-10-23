@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useI18n } from "@/components/i18n-provider"
 import { ModeToggle } from "@/components/mode-toggle"
+import { NotificationsMenu } from "@/components/notifications-menu"
 import { navTrail } from "@/lib/nav"
 
 /** Top bar of the signed-in pages: where the page sits in the sidebar ("Trending › Top Videos"). */
@@ -36,7 +37,8 @@ export function SiteHeader() {
             ))}
           </div>
         )}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <NotificationsMenu />
           <ModeToggle />
         </div>
       </div>

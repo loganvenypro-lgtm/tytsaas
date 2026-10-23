@@ -1,9 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { Copy, LogOut, Mail, Plus, Trash2, UserMinus, Users, X } from "lucide-react"
+import { Copy, LogOut, Mail, Plus, Share2, Trash2, UserMinus, Users, X } from "lucide-react"
 
 import { useI18n } from "@/components/i18n-provider"
+import { ShareLinkPanel } from "@/components/share/share-link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -164,6 +165,14 @@ export function TeamView({ userId }: { userId: string }) {
           </CardHeader>
           <CardContent className="grid gap-4">
             <InviteForm teamId={team.id} canInviteAdmin={manager} />
+            <div className="grid gap-2">
+              <h3 className="flex items-center gap-2 text-sm font-medium">
+                <Share2 className="size-4" />
+                {t.share.teamLinkTitle}
+              </h3>
+              <p className="text-sm text-muted-foreground">{t.share.teamLinkDescription}</p>
+              <ShareLinkPanel kind="team" targetId={team.id} />
+            </div>
             <div className="grid gap-2">
               <h3 className="text-sm font-medium">{t.teams.page.pending}</h3>
               {pending.length === 0 && <p className="text-sm text-muted-foreground">{t.teams.page.noPending}</p>}

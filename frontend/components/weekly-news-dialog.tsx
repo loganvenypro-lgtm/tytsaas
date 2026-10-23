@@ -18,19 +18,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "cn"
-import { WEEKLY_NEWS_OPEN_EVENT, daysUntilNextEdition, weeklyEditionId, type WeeklyDigest } from "@/lib/weekly-news"
+import { WEEKLY_NEWS_OPEN_EVENT, weeklyEditionId, type WeeklyDigest } from "@/lib/weekly-news"
 
 const storageKey = (userId: string) => `weekly_news_seen:${userId}`
 
 const watchUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`
 
 /**
- * The creator's weekly recap: opens once per edition (each Monday) and per user,
- * the seen edition is kept in localStorage. Skipped when the week has nothing to show.
+ * The creator's weekly recap, built by the worker every Monday (worker/jobs/weeklyDigest.js):
+ * opens once per edition and per user, the seen edition is kept in localStorage.
+ * Skipped when the week has nothing to show or before the user's first edition.
  */
 export function WeeklyNewsDialog({ userId, name }: { userId: string; name?: string | null }) {
   const { t, locale, compact, date } = useI18n()
-  const tw = t.weeklyNews
   const [digest, setDigest] = React.useState<WeeklyDigest | null>(null)
   const [open, setOpen] = React.useState(false)
   const firstName = name?.trim().split(/\s+/)[0] || null
@@ -46,7 +46,8 @@ export function WeeklyNewsDialog({ userId, name }: { userId: string; name?: stri
     let cancelled = false
     fetchJson<WeeklyDigest>("/api/weekly-digest")
       .then((data) => {
-        if (cancelled || (!data.topVideos.length && !data.myChannel)) return
+        // Monday before the worker ran: this is still last week's edition, already seen
+        if (cancelled || data.edition === seen || (!data.topVideos.length && !data.myChannel)) return
         setDigest(data)
         setOpen(true)
       })
@@ -76,9 +77,9 @@ export function WeeklyNewsDialog({ userId, name }: { userId: string; name?: stri
 
   function handleOpenChange(next: boolean) {
     setOpen(next)
-    if (next) return
+    if (next || !digest) return
     try {
-      localStorage.setItem(storageKey(userId), weeklyEditionId())
+      localStorage.setItem(storageKey(userId), digest.edition)
     } catch {
       // Storage blocked
     }
@@ -87,12 +88,17 @@ export function WeeklyNewsDialog({ userId, name }: { userId: string; name?: stri
   if (!digest) return null
   const close = () => handleOpenChange(false)
   const { myChannel } = digest
+  // Monthly editions swap the "week" wording for "month"
+  const tw = digest.frequency === "monthly" ? { ...t.weeklyNews, ...t.weeklyNews.month } : t.weeklyNews
+  const daysToNext = digest.nextEditionAt
+    ? Math.max(1, Math.ceil((new Date(digest.nextEditionAt).getTime() - Date.now()) / 86_400_000))
+    : null
   const [lead, ...runnersUp] = digest.topVideos
   const hasBottom = Boolean(myChannel || digest.risingChannels.length)
 
-  // The recap covers the last 7 days: "Du 15 au 22 octobre"
-  const to = new Date()
-  const from = new Date(to.getTime() - 7 * 86_400_000)
+  // The days the edition covers: "Du 12 au 18 octobre" (periodEnd is the edition day, 00:00)
+  const from = new Date(digest.periodStart)
+  const to = new Date(new Date(digest.periodEnd).getTime() - 86_400_000)
   const sameMonth = from.getMonth() === to.getMonth()
   const range = tw.range(
     date(from, locale === "fr" && sameMonth ? { day: "numeric" } : { day: "numeric", month: "long" }),
@@ -210,7 +216,7 @@ export function WeeklyNewsDialog({ userId, name }: { userId: string; name?: stri
         </div>
 
         <DialogFooter className="m-0 flex-row items-center justify-between rounded-none px-5 py-4 sm:justify-between sm:px-8">
-          <p className="text-sm text-muted-foreground">{tw.nextEdition(daysUntilNextEdition())}</p>
+          <p className="text-sm text-muted-foreground">{daysToNext ? tw.nextEdition(daysToNext) : null}</p>
           <DialogClose render={<Button size="lg" className="px-4" />}>{tw.dismiss}</DialogClose>
         </DialogFooter>
       </DialogContent>

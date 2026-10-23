@@ -16,6 +16,11 @@ import * as myChannel from "../controllers/myChannel.js";
 import * as teams from "../controllers/teams.js";
 import { landing } from "../controllers/landing.js";
 import { weeklyDigest } from "../controllers/weeklyDigest.js";
+import * as notifications from "../controllers/notifications.js";
+import * as shareLinks from "../controllers/shareLinks.js";
+import * as digestSettings from "../controllers/digestSettings.js";
+import { similarVideos } from "../controllers/similarVideos.js";
+import * as feedback from "../controllers/feedback.js";
 
 const router = Router();
 
@@ -26,11 +31,16 @@ router.get("/onboarding/channel", requireUser, onboarding.findChannel);
 router.get("/onboarding/niche/:niche", requireUser, onboarding.nicheChannels);
 router.post("/onboarding", requireUser, onboarding.complete);
 router.get("/home", requireUser, home.home);
+router.post("/feedback", requireUser, feedback.send);
 router.get("/weekly-digest", requireUser, weeklyDigest);
+router.get("/digest-settings", requireUser, digestSettings.get);
+router.put("/digest-settings", requireUser, digestSettings.update);
+router.get("/notifications", requireUser, notifications.list);
 router.get("/filters/videos", requireUser, filters.videoFilters);
 router.get("/filters/channels", requireUser, filters.channelFilters);
 router.get("/taxonomy", requireUser, filters.taxonomy);
 router.get("/videos/top", requireUser, videos.topVideos);
+router.get("/videos/similar", requireUser, similarVideos);
 router.get("/keywords", requireUser, keywords.search);
 router.get("/videos/:videoId/variants", requireUser, videos.variants);
 router.get("/videos/:videoId/thumbnails/:version", requireUser, videos.thumbnailImage);
@@ -77,6 +87,12 @@ router.get("/formats/:formatId/videos", requireUser, titleFormats.videos);
 // Teams: the rest (members, invitations, switching) is Better Auth's /api/auth/organization/*
 router.get("/workspace", requireUser, teams.workspace);
 router.post("/teams", requireUser, teams.create);
+// Share links: managed by the owner, opened by anyone (/shared/:token is public)
+router.get("/share/:kind/:targetId", requireUser, shareLinks.get);
+router.post("/share/:kind/:targetId", requireUser, shareLinks.enable);
+router.delete("/share/:kind/:targetId", requireUser, shareLinks.disable);
+router.get("/shared/:token", shareLinks.open);
+router.post("/shared/:token/join", requireUser, shareLinks.join);
 router.get("/folders", requireUser, folders.list);
 router.post("/folders", requireUser, folders.create);
 router.get("/folders/:folderId", requireUser, folders.get);

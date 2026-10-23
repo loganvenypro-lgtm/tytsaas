@@ -15,6 +15,7 @@ import { EmptyState, SessionExpiredState, SessionExpiredError, fetchJson } from 
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 import { FOLDERS_CHANGED_EVENT, type SavedItem } from "@/lib/saved-folders";
+import { ShareFolderButton } from "@/components/share/share-link";
 import { FolderActionsMenu } from "./folder-actions-menu";
 import { removeFromFolder } from "./folders-client";
 import { IdeationBoard, VideoSummary } from "./ideation-board";
@@ -99,6 +100,7 @@ export function FolderDetailView({ folderId }: { folderId: string }) {
             <div className="flex min-w-0 items-center gap-2">
               <h2 className="truncate text-2xl font-semibold tracking-tight">{data.folder.name}</h2>
               <FolderActionsMenu folder={data.folder} onDeleted={() => router.push("/folders")} />
+              <ShareFolderButton folderId={folderId} folderName={data.folder.name} />
             </div>
             <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
               <TabsList>

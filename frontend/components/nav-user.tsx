@@ -20,9 +20,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon, ShieldCheckIcon } from "lucide-react"
+import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon, MessageSquareIcon, ShieldCheckIcon } from "lucide-react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 
+import { FeedbackDialog } from "@/components/feedback-dialog"
 import { useI18n } from "@/components/i18n-provider"
 import { toast } from "@/components/ui/toast"
 import { signOut } from "@/lib/auth-client"
@@ -33,6 +35,7 @@ export function NavUser({ user }: { user: SessionUser }) {
   const { isMobile } = useSidebar()
   const { t } = useI18n()
   const router = useRouter()
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const avatar = resolveAvatar(user)
   const initials = user.name
     .split(" ")
@@ -108,6 +111,10 @@ export function NavUser({ user }: { user: SessionUser }) {
                 />
                 {t.userMenu.notifications}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFeedbackOpen(true)}>
+                <MessageSquareIcon />
+                {t.userMenu.feedback}
+              </DropdownMenuItem>
               {user.role === "admin" && (
                 <DropdownMenuItem onClick={() => router.push("/admin")}>
                   <ShieldCheckIcon />
@@ -123,6 +130,7 @@ export function NavUser({ user }: { user: SessionUser }) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
       </SidebarMenuItem>
     </SidebarMenu>
   )

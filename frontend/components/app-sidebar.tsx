@@ -2,8 +2,10 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { LifeBuoy } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { Gem, LifeBuoy } from "lucide-react"
 
+import { CommandMenu } from "@/components/command-menu"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { ReturbeMark } from "@/components/returbe-logo"
@@ -29,6 +31,7 @@ export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & { user: SessionUser }) {
   const { t } = useI18n()
+  const pathname = usePathname()
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader className="h-(--header-height) justify-center px-4 group-data-[collapsible=icon]:px-2">
@@ -46,12 +49,23 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup className="pb-0">
+          <CommandMenu />
           <TeamSwitcher />
         </SidebarGroup>
         <NavMain sections={NAV_SECTIONS} />
       </SidebarContent>
       <SidebarFooter className="pl-3 pr-2 group-data-[collapsible=icon]:px-2">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip={t.nav.items.pricing}
+              isActive={pathname === "/pricing"}
+              render={<Link href="/pricing" />}
+            >
+              <Gem />
+              <span>{t.nav.items.pricing}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip={t.nav.support}

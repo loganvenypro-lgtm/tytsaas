@@ -85,7 +85,12 @@ export function LoginForm({
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="password">{t.auth.password}</FieldLabel>
+            <div className="flex items-center">
+              <FieldLabel htmlFor="password">{t.auth.password}</FieldLabel>
+              <Link href="/forgot-password" className="ml-auto text-sm underline-offset-4 hover:underline">
+                {t.auth.login.forgotPassword}
+              </Link>
+            </div>
             <Input
               id="password"
               name="password"

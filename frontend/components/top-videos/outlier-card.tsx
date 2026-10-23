@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, Flame, MessageCircle, SplitSquareHorizontal, ThumbsUp, Zap } from "lucide-react";
+import Link from "next/link";
+import { Eye, Flame, Image as ImageIcon, Lightbulb, MessageCircle, SplitSquareHorizontal, ThumbsUp, Zap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -52,13 +53,20 @@ function multiplierTone(multiplier: number) {
   return "bg-white/90 text-slate-900";
 }
 
+/** The "Similar videos" page for a video, compared by topic or thumbnail. */
+export const similarVideosUrl = (videoId: string, by: "topic" | "thumbnail") =>
+  `/search/similar-videos?video=${encodeURIComponent(videoId)}&by=${by}`;
+
 export function OutlierCard({
   video,
   onFilter,
+  similarity,
 }: {
   video: OutlierVideo;
   /** When given, classification badges filter the list on their value. */
   onFilter?: (key: string, value: string) => void;
+  /** Cosine similarity to the video a "Similar videos" search started from (0-1). */
+  similarity?: number;
 }) {
   const { t, compact, date, ago, language: languageName } = useI18n();
   const labelOf = useOptionLabels("videos");
@@ -78,7 +86,7 @@ export function OutlierCard({
 
   return (
     <Card className="group gap-0 overflow-hidden p-0 transition-[box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/[0.06]">
-      <div className="relative">
+      <div className="group/thumb relative">
         <a href={url} target="_blank" rel="noopener noreferrer" className="relative block aspect-video overflow-hidden bg-muted">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -107,6 +115,31 @@ export function OutlierCard({
             </span>
           )}
         </a>
+        {/* "More like this": the overlay lets clicks through to the video, only its buttons catch them */}
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45 opacity-0 transition-opacity group-hover/thumb:opacity-100 has-focus-visible:opacity-100">
+          <span className="text-xs font-semibold text-white drop-shadow">{t.topVideos.card.moreLikeThis}</span>
+          <div className="pointer-events-auto flex gap-1.5">
+            <Link
+              href={similarVideosUrl(video.id, "topic")}
+              className="flex items-center gap-1 rounded-md bg-white px-2 py-1 text-xs font-semibold text-slate-900 shadow-sm hover:bg-white/90"
+            >
+              <Lightbulb className="size-3.5" />
+              {t.topVideos.card.moreTopic}
+            </Link>
+            <Link
+              href={similarVideosUrl(video.id, "thumbnail")}
+              className="flex items-center gap-1 rounded-md bg-brand px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-brand-strong"
+            >
+              <ImageIcon className="size-3.5" />
+              {t.topVideos.card.moreThumbnail}
+            </Link>
+          </div>
+        </div>
+        {similarity != null && (
+          <span className="pointer-events-none absolute top-9 left-2 rounded-md transition-opacity group-hover/thumb:opacity-0 bg-brand px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-sm">
+            {t.topVideos.card.similarity(Math.round(similarity * 100))}
+          </span>
+        )}
         <div className="absolute top-9 right-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-data-[popup-open]:opacity-100 [@media(hover:none)]:opacity-100">
           <SaveToFolderMenu
             variant="overlay"

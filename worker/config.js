@@ -101,6 +101,12 @@ export const CONFIG = {
   terminatedSuspectCooldownHours: num("TERMINATED_SUSPECT_COOLDOWN_HOURS", 24),
   terminatedRecheckHours: num("TERMINATED_RECHECK_HOURS", 72),
 
+  // CLIP embeddings for "Similar videos" (local model, thumbnails from the CDN: no quota).
+  // Up to this many videos per tick, in batches, and the job stops after this many seconds.
+  embedMaxPerTick: num("EMBED_MAX_PER_TICK", 1500),
+  embedBatch: num("EMBED_BATCH", 32),
+  embedMaxSeconds: num("EMBED_MAX_SECONDS", 180),
+
   // Estimated monetization (local, no quota).
   monetizationIntervalHours: num("MONETIZATION_INTERVAL_HOURS", 6),
 

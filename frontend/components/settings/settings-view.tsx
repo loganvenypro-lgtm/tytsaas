@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useI18n } from "@/components/i18n-provider"
+import { DigestSettingsCard } from "@/components/settings/digest-settings-card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -504,6 +505,7 @@ function PreferencesTab() {
     <div className="flex flex-col gap-4">
       <LanguageCard />
       <ThemeCard />
+      <DigestSettingsCard />
     </div>
   )
 }
