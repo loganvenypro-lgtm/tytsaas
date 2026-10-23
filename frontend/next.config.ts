@@ -43,10 +43,10 @@ const nextConfig: NextConfig = {
       { source: "/ingest/static/:path*", destination: "https://us-assets.i.posthog.com/static/:path*" },
       { source: "/ingest/array/:path*", destination: "https://us-assets.i.posthog.com/array/:path*" },
       { source: "/ingest/:path*", destination: "https://us.i.posthog.com/:path*" },
-      {
-        source: "/api/:path*",
-        destination: `${process.env.BACKEND_URL}/api/:path*`,
-      },
+      // Without BACKEND_URL (a deploy before the API is hosted) the site still builds, /api answers 404
+      ...(process.env.BACKEND_URL
+        ? [{ source: "/api/:path*", destination: `${process.env.BACKEND_URL.replace(/\/$/, "")}/api/:path*` }]
+        : []),
     ]
   },
 }
