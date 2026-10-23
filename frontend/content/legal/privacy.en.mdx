@@ -1,0 +1,73 @@
+import { LEGAL, YOUTUBE_TERMS_URL, GOOGLE_PRIVACY_URL, GOOGLE_PERMISSIONS_URL } from "@/lib/legal"
+
+export const meta = { title: "Privacy policy" }
+
+This policy explains what data Returbe collects, why, how long it is kept and how you can delete it. The data controller is {LEGAL.company}, reachable at <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>.
+
+## Returbe uses YouTube API Services
+
+Returbe uses **YouTube API Services** (YouTube Data API v3 and YouTube Analytics API) to show video and channel statistics. By using Returbe, you agree to be bound by the <a href={YOUTUBE_TERMS_URL}>YouTube Terms of Service</a>. Data obtained through these services is also subject to the <a href={GOOGLE_PRIVACY_URL}>Google Privacy Policy</a>.
+
+## Data we collect
+
+### Your account
+- Your name, email address and profile picture, given at sign-up or by Google or Discord if you sign in with them.
+- Your password, only in hashed form if you sign up with an email.
+- Your settings: language, niche, folders, followed channels, alerts and recap preferences.
+
+### Public YouTube data
+Returbe indexes **public** YouTube data through the YouTube Data API: video titles, thumbnails, view, like and comment counts, publish dates, channel names and subscriber counts. This data is not about your account.
+
+### Your YouTube channel (only if you connect it)
+If you choose to connect your channel in "My channel", you authorize Returbe through your Google account to:
+- **youtube.readonly**: know which channel is yours and read its videos;
+- **yt-analytics.readonly**: read your channel's YouTube Analytics statistics (views, watch time, impressions, click-through rate).
+
+Returbe **never** has write access to your YouTube account: it cannot publish, edit or delete anything.
+
+### Site usage
+- Anonymized usage statistics (page views, clicks) through PostHog, to improve the product.
+- The page you came from when you signed up (for example a shared link).
+- The messages you send us through the Feedback form.
+
+## How we use this data
+- To run the service: your account, searches, alerts and recap.
+- To show your channel's statistics to you only (and to your team members if you invite them).
+- To send account emails: welcome, new sign-in, password reset, and the recap if you turned it on.
+- To understand how the product is used, so we can improve it.
+
+We do not sell your data, use it for advertising, or share it with other users.
+
+## Who we share data with
+Only with the providers that run the service, and only for that:
+- **Google** (sign-in and YouTube API Services);
+- **Discord** (sign-in if you choose it, and internal notifications to the Returbe team);
+- **Resend** (sending emails);
+- **PostHog** (usage statistics);
+- our hosting provider and database.
+
+We may also disclose data when the law requires it.
+
+## Cookies and storage on your device
+Returbe sets cookies and uses your browser's local storage to:
+- keep you signed in (session cookie, required);
+- remember your language and display preferences;
+- measure site usage (PostHog).
+
+## How long we keep data
+- Account data is kept while your account exists, then deleted within 30 days of its deletion.
+- Your channel's data obtained through YouTube API Services is refreshed regularly and deleted at most **30 days** after you revoke access or delete your account.
+- Indexed public YouTube data is refreshed or deleted at least every 30 days, as required by the YouTube API Services policies.
+
+## Revoking access and deleting your data
+- **Disconnect YouTube**: in Settings → Account, the "Disconnect YouTube" button immediately revokes Returbe's access to your Google account and deletes your channel's private statistics. You can also revoke access from your <a href={GOOGLE_PERMISSIONS_URL}>Google account permissions page</a>.
+- **Delete your account**: in Settings → Account, the "Delete my account" button erases your account and all associated data, immediately. You can also email us at <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>.
+
+## Your rights
+Under the GDPR, you can access, correct, delete, restrict or object to the processing of your data, and ask for a copy of it. Email us at <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>. You can also lodge a complaint with the CNIL (cnil.fr) or your local data protection authority.
+
+## Security
+Traffic is encrypted (HTTPS), passwords are hashed and Google access tokens are stored server-side, never in your browser.
+
+## Changes
+If this policy changes in a meaningful way, we will tell you by email or in the app. Last updated: October 23, 2026.

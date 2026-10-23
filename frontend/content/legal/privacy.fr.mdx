@@ -1,0 +1,73 @@
+import { LEGAL, YOUTUBE_TERMS_URL, GOOGLE_PRIVACY_URL, GOOGLE_PERMISSIONS_URL } from "@/lib/legal"
+
+export const meta = { title: "Politique de confidentialité" }
+
+Cette politique explique quelles données Returbe collecte, pourquoi, combien de temps elles sont gardées et comment tu peux les supprimer. Le responsable du traitement est {LEGAL.company}, joignable à <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>.
+
+## Returbe utilise les services API YouTube
+
+Returbe utilise les **services API YouTube** (YouTube Data API v3 et YouTube Analytics API) pour afficher des statistiques de vidéos et de chaînes. En utilisant Returbe, tu acceptes les <a href={YOUTUBE_TERMS_URL}>Conditions d'utilisation de YouTube</a>. Les données obtenues via ces services sont aussi soumises aux <a href={GOOGLE_PRIVACY_URL}>Règles de confidentialité de Google</a>.
+
+## Les données que nous collectons
+
+### Ton compte
+- Ton nom, ton adresse email et ta photo de profil, fournis à l'inscription ou par Google ou Discord si tu te connectes avec eux.
+- Ton mot de passe, uniquement sous forme chiffrée (hachée) si tu crées un compte par email.
+- Tes réglages : langue, niche, dossiers, chaînes suivies, alertes et préférences du récap.
+
+### Données publiques de YouTube
+Returbe indexe des données **publiques** de YouTube via la YouTube Data API : titres, miniatures, nombres de vues, de likes et de commentaires, dates de publication des vidéos, nom et nombre d'abonnés des chaînes. Ces données ne concernent pas ton compte.
+
+### Ta chaîne YouTube (seulement si tu la connectes)
+Si tu choisis de connecter ta chaîne dans « Ma chaîne », tu autorises Returbe avec ton compte Google à :
+- **youtube.readonly** : savoir quelle chaîne t'appartient et lire ses vidéos ;
+- **yt-analytics.readonly** : lire les statistiques YouTube Analytics de ta chaîne (vues, durée de visionnage, impressions, taux de clic).
+
+Returbe n'a **jamais** accès en écriture à ton compte YouTube : il ne peut ni publier, ni modifier, ni supprimer quoi que ce soit.
+
+### Utilisation du site
+- Des statistiques d'usage anonymisées (pages vues, clics) via PostHog, pour améliorer le produit.
+- La page d'où tu arrives à l'inscription (par exemple un lien partagé).
+- Les messages que tu nous envoies via le formulaire Feedback.
+
+## Comment nous utilisons ces données
+- Faire fonctionner le service : ton compte, tes recherches, tes alertes, ton récap.
+- Afficher les statistiques de ta chaîne à toi seul (et aux membres de ton équipe si tu les invites).
+- T'envoyer les emails liés au compte : bienvenue, nouvelle connexion, réinitialisation du mot de passe, récap si tu l'as activé.
+- Comprendre comment le produit est utilisé, pour l'améliorer.
+
+Nous ne vendons pas tes données, nous ne les utilisons pas pour de la publicité et nous ne les partageons pas avec d'autres utilisateurs.
+
+## Avec qui nous partageons des données
+Uniquement avec les prestataires qui font tourner le service, et seulement pour ça :
+- **Google** (connexion et services API YouTube) ;
+- **Discord** (connexion si tu la choisis, et notifications internes à l'équipe Returbe) ;
+- **Resend** (envoi des emails) ;
+- **PostHog** (statistiques d'usage) ;
+- notre hébergeur et notre base de données.
+
+Nous pouvons aussi transmettre des données si la loi l'exige.
+
+## Cookies et stockage sur ton appareil
+Returbe dépose des cookies et utilise le stockage local de ton navigateur pour :
+- garder ta session ouverte (cookie de connexion, indispensable) ;
+- retenir ta langue et tes préférences d'affichage ;
+- mesurer l'usage du site (PostHog).
+
+## Combien de temps nous gardons les données
+- Les données de ton compte sont gardées tant que ton compte existe, puis supprimées sous 30 jours après sa suppression.
+- Les données de ta chaîne obtenues via les services API YouTube sont actualisées régulièrement et supprimées au plus tard **30 jours** après que tu as retiré l'accès ou supprimé ton compte.
+- Les données publiques YouTube indexées sont actualisées ou supprimées au moins tous les 30 jours, conformément aux règles des services API YouTube.
+
+## Retirer l'accès et supprimer tes données
+- **Déconnecter YouTube** : dans Paramètres → Compte, le bouton « Déconnecter YouTube » retire immédiatement l'accès de Returbe à ton compte Google et supprime les statistiques privées de ta chaîne. Tu peux aussi retirer l'accès depuis la <a href={GOOGLE_PERMISSIONS_URL}>page des autorisations de ton compte Google</a>.
+- **Supprimer ton compte** : dans Paramètres → Compte, le bouton « Supprimer mon compte » efface ton compte et toutes les données associées, immédiatement. Tu peux aussi nous écrire à <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>.
+
+## Tes droits
+Conformément au RGPD, tu peux accéder à tes données, les corriger, les supprimer, t'opposer à leur traitement, en limiter l'usage ou en demander une copie. Écris-nous à <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>. Tu peux aussi saisir la CNIL (cnil.fr).
+
+## Sécurité
+Les échanges sont chiffrés (HTTPS), les mots de passe sont hachés et les jetons d'accès Google sont stockés côté serveur, jamais dans ton navigateur.
+
+## Modifications
+Si cette politique change de façon importante, nous te prévenons par email ou dans l'app. Dernière mise à jour : 23 octobre 2026.

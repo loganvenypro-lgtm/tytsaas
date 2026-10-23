@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowUpRight, Rss } from "lucide-react"
+import { ArrowUpRight } from "lucide-react"
 
 import { BlogShell } from "@/components/blog/blog-shell"
 import { PostCover } from "@/components/blog/post-cover"
@@ -43,12 +43,7 @@ export default async function BlogPage({ searchParams }: { searchParams: SearchP
           <h1 className="max-w-4xl text-5xl leading-[1.02] font-semibold tracking-[-0.045em] text-balance text-slate-950 sm:text-7xl">
             {t.blog.heading}
           </h1>
-          <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <p className="max-w-xl text-lg leading-8 text-pretty text-slate-500">{t.blog.subheading}</p>
-            <a href="/blog/rss.xml" className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-950">
-              <Rss className="size-4" /> {t.blog.rss}
-            </a>
-          </div>
+          <p className="mt-6 max-w-xl text-lg leading-8 text-pretty text-slate-500">{t.blog.subheading}</p>
         </section>
 
         {tags.length > 0 && (

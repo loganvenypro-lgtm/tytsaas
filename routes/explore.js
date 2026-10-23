@@ -20,6 +20,7 @@ import * as notifications from "../controllers/notifications.js";
 import * as shareLinks from "../controllers/shareLinks.js";
 import * as digestSettings from "../controllers/digestSettings.js";
 import { similarVideos } from "../controllers/similarVideos.js";
+import * as account from "../controllers/account.js";
 import * as feedback from "../controllers/feedback.js";
 
 const router = Router();
@@ -32,6 +33,8 @@ router.get("/onboarding/niche/:niche", requireUser, onboarding.nicheChannels);
 router.post("/onboarding", requireUser, onboarding.complete);
 router.get("/home", requireUser, home.home);
 router.post("/feedback", requireUser, feedback.send);
+router.post("/account/youtube/disconnect", requireUser, account.disconnectYouTube);
+router.delete("/account", requireUser, account.deleteAccount);
 router.get("/weekly-digest", requireUser, weeklyDigest);
 router.get("/digest-settings", requireUser, digestSettings.get);
 router.put("/digest-settings", requireUser, digestSettings.update);

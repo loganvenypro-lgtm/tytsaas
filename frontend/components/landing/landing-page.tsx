@@ -35,6 +35,7 @@ import {
 } from "lucide-react"
 
 import { useI18n } from "@/components/i18n-provider"
+import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
 import {
   ChannelAvatar,
@@ -104,7 +105,7 @@ export function LandingPage({ data }: { data: LandingData }) {
       <Comparison />
       <Faq />
       <FinalCta />
-      <Footer />
+      <SiteFooter />
     </div>
   )
 }
@@ -1182,32 +1183,6 @@ function FinalCta() {
         </div>
       </Reveal>
     </section>
-  )
-}
-
-// --- FOOTER ---
-
-function Footer() {
-  const { t } = useI18n()
-  const l = t.landing
-
-  return (
-    <footer className="border-t border-slate-200 px-4 py-12">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 sm:flex-row">
-        <Logo />
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-500">
-          {NAV_KEYS.map((n) => (
-            <a key={n.href} href={n.href} className="hover:text-slate-900">
-              {l.nav[n.key]}
-            </a>
-          ))}
-          <Link href="/login" className="hover:text-slate-900">
-            {l.nav.signIn}
-          </Link>
-        </div>
-        <p className="text-sm text-slate-400">{l.footer.rights(new Date().getFullYear(), t.brand)}</p>
-      </div>
-    </footer>
   )
 }
 
