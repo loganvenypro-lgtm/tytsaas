@@ -84,6 +84,7 @@ const NAV_KEYS = [
   { href: "#demo", key: "demo" },
   { href: "#method", key: "method" },
   { href: "#faq", key: "faq" },
+  { href: "/blog", key: "blog" },
 ] as const
 
 /** /welcome: the public page, fed with live numbers and real outliers from the index. */

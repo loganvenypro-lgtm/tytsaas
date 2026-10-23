@@ -17,6 +17,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Every page except the auth pages (password reset included), the landing pages, invitations (they explain how to sign in),
-  // share links (/share/<token>, public), the API (proxied to the backend), PostHog (/ingest) and static files
-  matcher: ["/((?!login|signup|forgot-password|reset-password|welcome2|welcome|invite|share/|api|ingest|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  // share links (/share/<token>, public), the blog, the API (proxied to the backend), PostHog (/ingest) and static files
+  matcher: ["/((?!login|signup|forgot-password|reset-password|welcome2|welcome|blog|invite|share/|api|ingest|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 }
