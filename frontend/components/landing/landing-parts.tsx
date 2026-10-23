@@ -148,7 +148,7 @@ export function Typewriter({ words }: { words: string[] }) {
   return (
     <span>
       {words[index % words.length].slice(0, length)}
-      <span className="lp-caret ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[3px] bg-blue-500" />
+      <span className="lp-caret ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[3px] bg-[#e3061a]" />
     </span>
   )
 }
@@ -181,7 +181,7 @@ export function SpotlightCard({
         "lp-spotlight group relative overflow-hidden rounded-3xl border transition-all duration-300",
         tone === "light"
           ? "border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow-md"
-          : "lp-spotlight-dark border-white/10 bg-white/[0.03] hover:-translate-y-0.5 hover:border-blue-400/30 hover:bg-white/[0.05]",
+          : "lp-spotlight-dark border-white/10 bg-white/[0.03] hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.05]",
         className
       )}
     >
@@ -221,7 +221,7 @@ export function VideoCard({ video }: { video: LandingVideo }) {
           loading="lazy"
           className="size-full object-cover transition-transform duration-500 group-hover/card:scale-105"
         />
-        <span className="absolute top-2 left-2 rounded-md bg-gradient-to-r from-blue-600 to-blue-400 px-1.5 py-0.5 text-[11px] font-bold text-white shadow-md shadow-blue-600/30">
+        <span className="absolute top-2 left-2 rounded-md bg-[#e3061a] px-1.5 py-0.5 text-[11px] font-bold text-white shadow-md shadow-[#e3061a]/30">
           {formatMultiplier(video.outlierMultiplier)}
         </span>
         {video.duration && (

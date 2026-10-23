@@ -273,7 +273,7 @@ body {
 
 /* --- Landing page (/welcome) --- */
 .lp-gradient-text {
-  background: linear-gradient(100deg, #1d4ed8 0%, #2563eb 50%, #60a5fa 100%);
+  background: linear-gradient(100deg, #b8000f 0%, #e3061a 55%, #ff3b45 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -281,9 +281,9 @@ body {
 
 .lp-aurora {
   background:
-    radial-gradient(closest-side, rgba(37,99,235, 0.32), transparent 70%) 30% 50% / 60% 100% no-repeat,
-    radial-gradient(closest-side, rgba(96,165,250, 0.28), transparent 70%) 70% 40% / 60% 100% no-repeat,
-    radial-gradient(closest-side, rgba(147,197,253, 0.18), transparent 70%) 50% 80% / 70% 100% no-repeat;
+    radial-gradient(closest-side, rgba(227,6,26, 0.30), transparent 70%) 30% 50% / 60% 100% no-repeat,
+    radial-gradient(closest-side, rgba(255,77,79, 0.22), transparent 70%) 70% 40% / 60% 100% no-repeat,
+    radial-gradient(closest-side, rgba(255,140,120, 0.14), transparent 70%) 50% 80% / 70% 100% no-repeat;
   filter: blur(40px);
   animation: lpAuroraDrift 14s ease-in-out infinite alternate;
 }
@@ -311,7 +311,7 @@ body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(420px circle at var(--x, 50%) var(--y, 0%), rgba(96,165,250, 0.08), transparent 40%);
+  background: radial-gradient(420px circle at var(--x, 50%) var(--y, 0%), rgba(227,6,26, 0.06), transparent 40%);
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -322,7 +322,7 @@ body {
 }
 
 .lp-spotlight-dark::before {
-  background: radial-gradient(420px circle at var(--x, 50%) var(--y, 0%), rgba(96,165,250, 0.14), transparent 45%);
+  background: radial-gradient(420px circle at var(--x, 50%) var(--y, 0%), rgba(255,59,69, 0.12), transparent 45%);
 }
 
 /* A light sweep across primary buttons every few seconds (the element sets its own position) */

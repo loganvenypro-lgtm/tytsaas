@@ -1399,6 +1399,8 @@ const fr = {
       opportunity: "opportunité",
       trendsTitle: "Créateurs en essor",
       trendsText: "Les chaînes qui décollent en ce moment, classées par vitesse de croissance.",
+      trendRising: "En forte croissance",
+      trendSlowing: "Croissance au ralenti",
       thumbsTitle: "Idées de miniatures",
       thumbsText: "Décodez les miniatures qui font cliquer dans votre niche et comparez-les côte à côte.",
       thumbTags: ["Visage", "Texte fort", "Contraste", "Avant/après"],

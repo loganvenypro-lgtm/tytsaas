@@ -5,7 +5,6 @@ import { ArrowLeft, Languages } from "lucide-react"
 
 import { BlogShell } from "@/components/blog/blog-shell"
 import { ReadingProgress, TableOfContents } from "@/components/blog/article-chrome"
-import { Cta } from "@/components/blog/mdx-blocks"
 import { PostCover } from "@/components/blog/post-cover"
 import { SITE_URL, getPost, getPosts } from "@/lib/blog"
 import { createFormatters, getMessages } from "@/lib/i18n"
@@ -88,7 +87,6 @@ export default async function BlogPostPage({ params }: { params: Params }) {
         <div className="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-20">
           <article lang={post.lang} className="max-w-[680px] min-w-0">
             <Content />
-            <Cta lang={post.lang} />
           </article>
 
           <aside className="order-first lg:order-none">

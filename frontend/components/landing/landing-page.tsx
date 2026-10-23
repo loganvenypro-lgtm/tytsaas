@@ -9,12 +9,10 @@ import {
   ArrowUpRight,
   BadgeCheck,
   BarChart3,
-  Bot,
   Check,
   ChevronDown,
   ChevronRight,
   CircleHelp,
-  Command,
   Compass,
   Dices,
   Flame,
@@ -22,7 +20,6 @@ import {
   Image as ImageIcon,
   LayoutGrid,
   Play,
-  Radar,
   Search,
   Sparkles,
   Target,
@@ -35,6 +32,7 @@ import {
 } from "lucide-react"
 
 import { useI18n } from "@/components/i18n-provider"
+import { ReturbeMark } from "@/components/returbe-logo"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
 import {
@@ -92,19 +90,18 @@ const NAV_KEYS = [
 export function LandingPage({ data }: { data: LandingData }) {
   const { videos, breakouts, niches, creators, stats } = data
   return (
-    <div className="lp-root relative min-h-screen overflow-x-clip bg-white text-slate-900 selection:bg-blue-200">
+    <div className="lp-root relative min-h-screen overflow-x-clip bg-white text-slate-900 selection:bg-red-100">
       <Navbar freshWeek={stats.freshWeek} />
       <Hero videos={videos} creators={creators} stats={stats} />
       <ProductPreview videos={videos.slice(0, 6)} />
       <Problem />
       <OutlierExplainer />
-      <Features videos={videos} />
+      <Features videos={videos} creators={creators} />
       <Proof videos={breakouts} />
       <NicheExplorer niches={niches} />
       <Method />
       <Comparison />
       <Faq />
-      <FinalCta />
       <SiteFooter />
     </div>
   )
@@ -116,9 +113,7 @@ function Logo() {
   const { t } = useI18n()
   return (
     <Link href="/welcome" className="flex items-center gap-2.5">
-      <span className="flex size-8 items-center justify-center rounded-xl bg-slate-950 shadow-sm ring-1 ring-white/10">
-        <Command className="size-4 text-white" />
-      </span>
+      <ReturbeMark className="size-7" />
       <span className="text-lg font-bold tracking-tight">{t.brand}</span>
     </Link>
   )
@@ -144,7 +139,7 @@ function Navbar({ freshWeek }: { freshWeek: number }) {
       {/* Announcement bar */}
       <a
         href="#demo"
-        className="flex h-8 items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-blue-500 px-4 text-[11px] font-semibold tracking-wide text-white uppercase"
+        className="flex h-8 items-center justify-center gap-3 bg-[#e3061a] px-4 text-[11px] font-semibold tracking-wide text-white uppercase"
       >
         <span className="truncate">
           {freshWeek >= 1_000 ? l.announcement(formatNumber(freshWeek)) : l.announcementFallback}
@@ -157,7 +152,7 @@ function Navbar({ freshWeek }: { freshWeek: number }) {
       <nav
         className={cn(
           "transition-all duration-300",
-          scrolled ? "border-b border-white/10 bg-[#0a0a0c]/80 backdrop-blur-xl" : "border-b border-transparent bg-transparent"
+          scrolled ? "border-b border-white/10 bg-[#0a0a0c]/90 backdrop-blur-xl" : "border-b border-transparent bg-transparent"
         )}
       >
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
@@ -175,7 +170,7 @@ function Navbar({ freshWeek }: { freshWeek: number }) {
             </Link>
             <Link
               href="/signup"
-              className="lp-shine relative rounded-xl border border-blue-400/40 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-300 transition-colors hover:bg-blue-500/20"
+              className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-white/85"
             >
               {l.nav.start}
             </Link>
@@ -213,8 +208,8 @@ function Hero({ videos, creators, stats }: { videos: LandingVideo[]; creators: L
   return (
     <section className="relative overflow-hidden bg-[#0a0a0c] px-4 pt-32 pb-52 text-white sm:pt-40">
       {/* Halo centred on the search box, then a warmer glow rising from the bottom behind the wall */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-40 h-[42rem] bg-[radial-gradient(ellipse_42%_45%_at_50%_50%,rgba(59,130,246,0.16),rgba(37,99,235,0.05)_55%,transparent_75%)]" />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[44rem] bg-[radial-gradient(ellipse_55%_60%_at_50%_100%,rgba(59,130,246,0.28),rgba(37,99,235,0.08)_45%,transparent_75%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-40 h-[42rem] bg-[radial-gradient(ellipse_42%_45%_at_50%_50%,rgba(227,6,26,0.13),rgba(184,0,15,0.04)_55%,transparent_75%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[44rem] bg-[radial-gradient(ellipse_55%_60%_at_50%_100%,rgba(227,6,26,0.22),rgba(184,0,15,0.07)_45%,transparent_75%)]" />
       {/* Decorative outlines framing the wall */}
       <div aria-hidden className="pointer-events-none absolute top-[23rem] left-[calc(50%-36rem)] hidden h-[28rem] w-[36rem] rounded-tl-[3rem] border-t border-l border-white/10 lg:block" />
       <div aria-hidden className="pointer-events-none absolute top-[34rem] left-[calc(50%-48rem)] hidden h-[20rem] w-[60rem] rounded-tl-[3rem] border-t border-l border-white/[0.06] lg:block" />
@@ -351,7 +346,7 @@ function HeroSearch() {
       }}
       className="relative"
     >
-      <div className="relative rounded-2xl border border-white/10 bg-[#141417]/80 px-4 pt-4 pb-8 text-left shadow-2xl shadow-black/60 backdrop-blur-xl transition-colors focus-within:border-blue-400/40">
+      <div className="relative rounded-2xl border border-white/10 bg-[#141417]/80 px-4 pt-4 pb-8 text-left shadow-2xl shadow-black/60 backdrop-blur-xl transition-colors focus-within:border-white/25">
         <label htmlFor="lp-hero-query" className="sr-only">
           {h.searchLabel}
         </label>
@@ -382,7 +377,7 @@ function HeroSearch() {
       </div>
       <button
         type="submit"
-        className="lp-shine absolute -bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-2.5 text-sm font-semibold whitespace-nowrap text-white shadow-[0_0_34px_rgba(59,130,246,0.6)] ring-4 ring-[#0a0a0c] transition-all hover:scale-105 hover:shadow-[0_0_48px_rgba(59,130,246,0.8)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-300"
+        className="lp-shine absolute -bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-[#e3061a] px-5 py-2.5 text-sm font-semibold whitespace-nowrap text-white shadow-[0_0_34px_rgba(227,6,26,0.45)] ring-4 ring-[#0a0a0c] transition-all hover:bg-[#f0121f] hover:shadow-[0_0_44px_rgba(227,6,26,0.6)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-red-300"
       >
         <Sparkles className="size-4" /> {h.searchSubmit}
       </button>
@@ -416,7 +411,7 @@ function ThumbnailWall({ videos }: { videos: LandingVideo[] }) {
               <div key={`${v.id}-${i}`} className="w-44 shrink-0 rounded-xl border border-white/[0.07] bg-[#151518] p-1 sm:w-48">
                 <div className="relative">
                   <img src={v.thumbnail} alt="" loading="lazy" className="aspect-video w-full rounded-lg object-cover" />
-                  <span className="absolute top-1.5 left-1.5 rounded-md bg-gradient-to-r from-blue-600 to-blue-400 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-md shadow-blue-600/30">
+                  <span className="absolute top-1.5 left-1.5 rounded-md bg-[#e3061a] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-md shadow-[#e3061a]/30">
                     {formatMultiplier(v.outlierMultiplier)}
                   </span>
                 </div>
@@ -458,7 +453,7 @@ function ProductPreview({ videos }: { videos: LandingVideo[] }) {
   return (
     <section className="relative z-10 -mt-40 px-4 pb-24">
       <div className="relative mx-auto max-w-6xl">
-        <div aria-hidden className="absolute -inset-x-10 -top-10 bottom-10 rounded-[3rem] bg-gradient-to-b from-blue-500/20 via-blue-400/10 to-transparent blur-3xl" />
+        <div aria-hidden className="absolute -inset-x-10 -top-10 bottom-10 rounded-[3rem] bg-gradient-to-b from-[#e3061a]/15 via-[#ff4d4f]/5 to-transparent blur-3xl" />
         <div ref={frameRef} className="relative origin-top transition-transform duration-150 ease-out will-change-transform">
           <AppFrame videos={videos} />
         </div>
@@ -502,7 +497,7 @@ function AppFrame({ videos }: { videos: LandingVideo[] }) {
                   key={f}
                   className={cn(
                     "rounded-lg border px-2.5 py-1",
-                    i === 1 ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-600"
+                    i === 1 ? "border-red-200 bg-red-50 text-[#b8000f]" : "border-slate-200 bg-white text-slate-600"
                   )}
                 >
                   {f}
@@ -532,7 +527,7 @@ function Problem() {
 
   return (
     <section className="relative overflow-hidden px-4 py-24">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(ellipse_45%_60%_at_50%_0%,rgba(96,165,250,0.12),transparent_70%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(ellipse_45%_60%_at_50%_0%,rgba(227,6,26,0.05),transparent_70%)]" />
       <div className="relative mx-auto max-w-6xl">
         <SectionHeader
           icon={CircleHelp}
@@ -581,8 +576,8 @@ function Problem() {
                   className="lp-draw"
                 />
                 <circle cx="122" cy="16" r="3.5" fill="#94a3b8" />
-                <circle cx="180" cy="75" r="5" fill="#2563eb" className="lp-pulse" />
-                <text x="180" y="62" textAnchor="middle" className="fill-blue-600 text-[9px] font-semibold">
+                <circle cx="180" cy="75" r="5" fill="#e3061a" className="lp-pulse" />
+                <text x="180" y="62" textAnchor="middle" className="fill-[#b8000f] text-[9px] font-semibold">
                   {p.lateYou}
                 </text>
               </svg>
@@ -600,8 +595,8 @@ function Problem() {
                   </div>
                   <span className="text-sm font-semibold text-slate-400">×1</span>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50/70 p-2.5">
-                  <span className="size-8 shrink-0 rounded-full bg-gradient-to-br from-blue-600 to-blue-400" />
+                <div className="flex items-center gap-3 rounded-xl border border-red-100 bg-red-50/60 p-2.5">
+                  <span className="size-8 shrink-0 rounded-full bg-gradient-to-br from-[#b8000f] to-[#ff3b45]" />
                   <div className="min-w-0 flex-1 leading-tight">
                     <p className="text-sm font-medium text-slate-800">{p.small}</p>
                     <p className="text-[11px] text-slate-500">{p.smallSub}</p>
@@ -633,7 +628,7 @@ function ProblemCard({
     <SpotlightCard className="flex h-full flex-col p-6">
       <div className="flex min-h-40 flex-col justify-center rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">{children}</div>
       <h3 className="mt-6 flex items-center gap-2 text-lg font-semibold tracking-tight">
-        <Icon className="size-4 text-blue-600" /> {title}
+        <Icon className="size-4 text-[#e3061a]" /> {title}
       </h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-500">{text}</p>
     </SpotlightCard>
@@ -658,8 +653,8 @@ function OutlierExplainer() {
           <ul className="mt-8 space-y-3 text-slate-700">
             {s.points.map((point) => (
               <li key={point} className="flex items-start gap-3">
-                <span className="mt-1 flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-100">
-                  <Check className="size-3 text-blue-600" />
+                <span className="mt-1 flex size-5 shrink-0 items-center justify-center rounded-full bg-red-50">
+                  <Check className="size-3 text-[#e3061a]" />
                 </span>
                 {point}
               </li>
@@ -682,14 +677,14 @@ function OutlierExplainer() {
                 return (
                   <div key={i} className="relative flex h-full flex-1 items-end">
                     {hot && (
-                      <span className="lp-float absolute -top-10 left-1/2 -translate-x-1/2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-400 px-2 py-1 text-xs font-bold whitespace-nowrap text-white shadow-lg shadow-blue-500/30">
+                      <span className="lp-float absolute -top-10 left-1/2 -translate-x-1/2 rounded-lg bg-[#e3061a] px-2 py-1 text-xs font-bold whitespace-nowrap text-white shadow-lg shadow-[#e3061a]/30">
                         {s.outlier}
                       </span>
                     )}
                     <div
                       className={cn(
                         "lp-bar w-full rounded-t-md",
-                        hot ? "bg-gradient-to-t from-blue-600 to-blue-300 shadow-[0_0_40px_rgba(96,165,250,0.35)]" : "bg-slate-200"
+                        hot ? "bg-gradient-to-t from-[#c8000f] to-[#ff4d4f] shadow-[0_0_40px_rgba(227,6,26,0.28)]" : "bg-slate-200"
                       )}
                       style={{ height: `${h}%`, animationDelay: `${i * 70}ms` }}
                     />
@@ -706,18 +701,16 @@ function OutlierExplainer() {
 
 // --- FEATURES (BENTO) ---
 
-function Features({ videos }: { videos: LandingVideo[] }) {
+// Light cards on a warm grey band: red title, grey text, then a small live visual
+function Features({ videos, creators }: { videos: LandingVideo[]; creators: LandingCreator[] }) {
   const { t, compact } = useI18n()
   const f = t.landing.features
   const thumbs = videos.slice(0, 4)
 
   return (
-    <section id="features" className="relative scroll-mt-24 overflow-hidden bg-[#0a0a0c] px-4 py-28 text-white">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[40rem] bg-[radial-gradient(ellipse_50%_55%_at_50%_0%,rgba(59,130,246,0.22),rgba(37,99,235,0.06)_50%,transparent_75%)]" />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[30rem] bg-[radial-gradient(ellipse_45%_60%_at_50%_100%,rgba(59,130,246,0.14),transparent_70%)]" />
+    <section id="features" className="relative scroll-mt-24 bg-[#f7f6f5] px-4 py-28">
       <div className="relative mx-auto max-w-6xl">
         <SectionHeader
-          tone="dark"
           icon={Sparkles}
           eyebrow={f.eyebrow}
           title={
@@ -732,95 +725,84 @@ function Features({ videos }: { videos: LandingVideo[] }) {
         <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-3">
           {/* Outliers */}
           <Reveal className="md:col-span-2">
-            <SpotlightCard tone="dark" className="h-full p-7">
-              <FeatureText icon={Flame} title={f.outliersTitle} text={f.outliersText} />
-              <div className="mt-7 space-y-2">
+            <FeatureCard title={f.outliersTitle} text={f.outliersText}>
+              <div className="space-y-2">
                 {videos.slice(0, 3).map((v, i) => (
-                  <div key={v.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-2 pr-3" style={{ opacity: 1 - i * 0.22 }}>
-                    <img src={v.thumbnail} alt="" loading="lazy" className="aspect-video w-24 shrink-0 rounded-lg object-cover" />
+                  <div
+                    key={v.id}
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-2 pr-4"
+                    style={{ opacity: 1 - i * 0.2 }}
+                  >
+                    <img src={v.thumbnail} alt="" loading="lazy" className="aspect-video w-24 shrink-0 rounded-xl object-cover" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-white/90">{v.title}</p>
-                      <p className="truncate text-xs text-white/45">
+                      <p className="truncate text-sm font-medium text-slate-900">{v.title}</p>
+                      <p className="truncate text-xs text-slate-500">
                         {v.channelTitle} · {t.common.subscribers(compact(v.channelSubscribers))}
                       </p>
                     </div>
-                    <span className="lp-gradient-text text-lg font-bold">{formatMultiplier(v.outlierMultiplier)}</span>
+                    <span className="text-lg font-bold text-[#e3061a] tabular-nums">{formatMultiplier(v.outlierMultiplier)}</span>
                   </div>
                 ))}
               </div>
-            </SpotlightCard>
+            </FeatureCard>
           </Reveal>
 
           {/* Niche finder */}
           <Reveal delay={80}>
-            <SpotlightCard tone="dark" className="h-full p-7">
-              <FeatureText icon={Radar} title={f.nicheTitle} text={f.nicheText} />
-              <div className="mt-8 flex items-center justify-center">
+            <FeatureCard title={f.nicheTitle} text={f.nicheText}>
+              <div className="flex items-center justify-center">
                 <div className="relative size-36">
                   <svg viewBox="0 0 120 120" className="size-full -rotate-90">
-                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="10" />
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="#ecebea" strokeWidth="10" />
                     <circle cx="60" cy="60" r="50" fill="none" stroke="url(#lp-gauge)" strokeWidth="10" strokeLinecap="round" strokeDasharray="314" className="lp-gauge" />
                     <defs>
                       <linearGradient id="lp-gauge" x1="0" x2="1">
-                        <stop offset="0%" stopColor="#2563eb" />
-                        <stop offset="100%" stopColor="#60a5fa" />
+                        <stop offset="0%" stopColor="#b8000f" />
+                        <stop offset="100%" stopColor="#ff3b45" />
                       </linearGradient>
                     </defs>
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-semibold">87</span>
-                    <span className="text-[10px] tracking-wider text-white/45 uppercase">{f.opportunity}</span>
+                    <span className="text-3xl font-semibold text-slate-950">87</span>
+                    <span className="text-[11px] text-slate-500">{f.opportunity}</span>
                   </div>
                 </div>
               </div>
-            </SpotlightCard>
+            </FeatureCard>
           </Reveal>
 
-          {/* Breakout creators */}
+          {/* Channel trends: who is taking off, who is slowing down */}
           <Reveal>
-            <SpotlightCard tone="dark" className="h-full p-7">
-              <FeatureText icon={TrendingUp} title={f.trendsTitle} text={f.trendsText} />
-              <svg viewBox="0 0 200 80" className="mt-8 w-full overflow-visible">
-                <defs>
-                  <linearGradient id="lp-spark" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="#60a5fa" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path d="M0 70 C30 68 45 64 70 60 S110 52 130 40 S170 12 200 6 L200 80 L0 80Z" fill="url(#lp-spark)" />
-                <path d="M0 70 C30 68 45 64 70 60 S110 52 130 40 S170 12 200 6" fill="none" stroke="#3b82f6" strokeWidth="2.5" className="lp-draw" />
-                <circle cx="200" cy="6" r="4" fill="#3b82f6" className="lp-pulse" />
-              </svg>
-            </SpotlightCard>
+            <FeatureCard title={f.trendsTitle} text={f.trendsText}>
+              <ChannelTrends videos={videos} creators={creators} />
+            </FeatureCard>
           </Reveal>
 
           {/* Thumbnails */}
           <Reveal delay={80}>
-            <SpotlightCard tone="dark" className="h-full p-7">
-              <FeatureText icon={ImageIcon} title={f.thumbsTitle} text={f.thumbsText} />
-              <div className="mt-7 grid grid-cols-2 gap-2">
+            <FeatureCard title={f.thumbsTitle} text={f.thumbsText}>
+              <div className="grid grid-cols-2 gap-2">
                 {thumbs.map((v, i) => (
-                  <div key={v.id} className="relative overflow-hidden rounded-lg ring-1 ring-white/10">
+                  <div key={v.id} className="relative overflow-hidden rounded-xl ring-1 ring-slate-200">
                     <img src={v.thumbnail} alt="" loading="lazy" className="aspect-video w-full object-cover" />
-                    <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 text-[9px] font-medium text-white backdrop-blur">
+                    <span className="absolute bottom-1 left-1 rounded-md bg-white/90 px-1.5 text-[10px] font-medium text-slate-800 backdrop-blur">
                       {f.thumbTags[i]}
                     </span>
                   </div>
                 ))}
               </div>
-            </SpotlightCard>
+            </FeatureCard>
           </Reveal>
 
           {/* Title patterns */}
           <Reveal delay={160}>
-            <SpotlightCard tone="dark" className="h-full p-7">
-              <FeatureText icon={Type} title={f.titlesTitle} text={f.titlesText} />
-              <div className="mt-7 space-y-2 text-sm">
+            <FeatureCard title={f.titlesTitle} text={f.titlesText}>
+              <div className="space-y-2 text-sm">
                 {f.titlePatterns.map((parts, i) => (
-                  <p key={i} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-white/80">
+                  <p key={i} className="rounded-2xl border border-slate-200/80 bg-white px-3 py-2 text-slate-700">
                     {parts.map((part, j) =>
                       part.startsWith("[") ? (
-                        <span key={j} className="rounded bg-blue-500/15 px-1 text-blue-300">
+                        <span key={j} className="rounded-md bg-red-50 px-1 font-medium text-[#b8000f]">
                           {part}
                         </span>
                       ) : (
@@ -830,22 +812,21 @@ function Features({ videos }: { videos: LandingVideo[] }) {
                   </p>
                 ))}
               </div>
-            </SpotlightCard>
+            </FeatureCard>
           </Reveal>
 
           {/* AI assistant */}
           <Reveal className="md:col-span-2">
-            <SpotlightCard tone="dark" className="h-full p-7">
-              <FeatureText icon={Bot} title={f.aiTitle} text={f.aiText} />
-              <div className="mt-7 space-y-3">
-                <div className="ml-auto w-fit max-w-md rounded-2xl rounded-br-md bg-white px-4 py-2.5 text-sm text-slate-900">{f.aiQuestion}</div>
+            <FeatureCard title={f.aiTitle} text={f.aiText}>
+              <div className="space-y-3">
+                <div className="ml-auto w-fit max-w-md rounded-2xl rounded-br-md bg-slate-950 px-4 py-2.5 text-sm text-white">{f.aiQuestion}</div>
                 <div className="flex max-w-lg gap-3">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-blue-400 text-white">
-                    <Sparkles className="size-3.5" />
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-slate-200">
+                    <ReturbeMark className="size-4" />
                   </span>
-                  <div className="rounded-2xl rounded-tl-md border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/80">
+                  <div className="rounded-2xl rounded-tl-md border border-slate-200/80 bg-white px-4 py-3 text-sm text-slate-700">
                     {f.aiAnswer}
-                    <span className="mt-2 block text-white/50">
+                    <span className="mt-2 block text-slate-500">
                       {f.aiIdeas.map((idea, i) => (
                         <span key={idea} className="block">
                           {i + 1}. {idea}
@@ -855,25 +836,24 @@ function Features({ videos }: { videos: LandingVideo[] }) {
                   </div>
                 </div>
               </div>
-            </SpotlightCard>
+            </FeatureCard>
           </Reveal>
 
           {/* Monetization */}
           <Reveal delay={80}>
-            <SpotlightCard tone="dark" className="h-full p-7">
-              <FeatureText icon={Wallet} title={f.revenueTitle} text={f.revenueText} />
-              <div className="mt-7 flex flex-wrap gap-2">
+            <FeatureCard title={f.revenueTitle} text={f.revenueText}>
+              <div className="flex flex-wrap gap-2">
                 {f.revenueTags.map((tag) => (
-                  <span key={tag} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/70">
+                  <span key={tag} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600">
                     {tag}
                   </span>
                 ))}
               </div>
-              <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                <p className="text-[11px] text-white/45">{f.revenueLabel}</p>
-                <p className="mt-1 text-xl font-semibold">{f.revenueValue}</p>
+              <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-3">
+                <p className="text-[11px] text-slate-500">{f.revenueLabel}</p>
+                <p className="mt-1 text-xl font-semibold text-slate-950">{f.revenueValue}</p>
               </div>
-            </SpotlightCard>
+            </FeatureCard>
           </Reveal>
         </div>
       </div>
@@ -881,14 +861,63 @@ function Features({ videos }: { videos: LandingVideo[] }) {
   )
 }
 
-function FeatureText({ icon: Icon, title, text }: { icon: React.ElementType; title: string; text: string }) {
+function FeatureCard({ title, text, children }: { title: string; text: string; children: React.ReactNode }) {
   return (
-    <div>
-      <span className="flex size-9 items-center justify-center rounded-xl border border-blue-400/30 bg-blue-500/10 shadow-[0_0_24px_rgba(59,130,246,0.18)]">
-        <Icon className="size-4 text-blue-400" />
-      </span>
-      <h3 className="mt-4 text-lg font-semibold tracking-tight">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-white/55">{text}</p>
+    <div className="flex h-full flex-col rounded-3xl border border-slate-200/70 bg-white/70 p-7">
+      <h3 className="text-[17px] font-semibold tracking-tight text-[#b8000f]">{title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-pretty text-slate-500">{text}</p>
+      <div className="mt-7 flex flex-1 flex-col justify-center">{children}</div>
+    </div>
+  )
+}
+
+/**
+ * Overlapping channel avatars in two rows: the channels behind today's outliers
+ * (taking off) and the long-established giants (growing slowly in relative terms).
+ */
+function ChannelTrends({ videos, creators }: { videos: LandingVideo[]; creators: LandingCreator[] }) {
+  const { t } = useI18n()
+  const f = t.landing.features
+  const seen = new Set<string>()
+  const rising = videos
+    .filter((v) => v.channelAvatar && !seen.has(v.channelTitle) && seen.add(v.channelTitle))
+    .slice(0, 5)
+    .map((v) => ({ name: v.channelTitle, avatar: v.channelAvatar! }))
+  const slowing = creators.filter((c) => !seen.has(c.name)).slice(0, 7)
+  if (rising.length < 3) return null
+
+  const rows = [
+    { label: f.trendRising, dot: "bg-emerald-500", items: rising, slow: false },
+    { label: f.trendSlowing, dot: "bg-[#e3061a]", items: slowing, slow: true },
+  ]
+  return (
+    <div className="space-y-6">
+      {rows.map((row) =>
+        row.items.length === 0 ? null : (
+          <div key={row.label}>
+            <p className="flex items-center gap-2 text-sm text-slate-500">
+              <span className={cn("size-2 rounded-full", row.dot)} />
+              {row.label}
+            </p>
+            <div className="mt-3 flex -space-x-3">
+              {row.items.map((c) => (
+                <img
+                  key={c.name}
+                  src={c.avatar}
+                  alt={c.name}
+                  title={c.name}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  className={cn(
+                    "size-12 rounded-full bg-slate-100 ring-[3px] ring-white",
+                    row.slow ? "opacity-45 grayscale" : "shadow-[0_6px_18px_-6px_rgba(15,23,42,0.35)]"
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+        )
+      )}
     </div>
   )
 }
@@ -902,7 +931,7 @@ function Proof({ videos }: { videos: LandingVideo[] }) {
 
   return (
     <section id="proof" className="relative scroll-mt-24 overflow-hidden px-4 py-24">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,rgba(59,130,246,0.10),transparent_70%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,rgba(227,6,26,0.05),transparent_70%)]" />
       <div className="relative mx-auto max-w-6xl">
         <SectionHeader
           icon={Target}
@@ -927,7 +956,7 @@ function Proof({ videos }: { videos: LandingVideo[] }) {
         <Reveal className="mt-12 flex justify-center">
           <Link
             href="/signup"
-            className="lp-shine group relative inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3.5 font-semibold text-white shadow-lg shadow-slate-950/20 transition-all hover:shadow-xl hover:shadow-blue-500/20"
+            className="lp-shine group relative inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3.5 font-semibold text-white shadow-lg shadow-slate-950/20 transition-all hover:shadow-xl hover:shadow-[#e3061a]/20"
           >
             {p.cta} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
@@ -942,10 +971,10 @@ function BreakoutCard({ video: v }: { video: LandingVideo }) {
   const median = v.viewCount / Math.max(v.outlierMultiplier, 1)
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10">
+    <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10">
       <div className="relative aspect-video overflow-hidden bg-slate-100">
         <img src={v.thumbnail} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
-        <span className="absolute top-3 left-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-400 px-2 py-1 text-sm font-bold text-white shadow-lg shadow-blue-600/30">
+        <span className="absolute top-3 left-3 rounded-lg bg-[#e3061a] px-2 py-1 text-sm font-bold text-white shadow-lg shadow-[#e3061a]/30">
           <CountUp value={Math.round(v.outlierMultiplier)} prefix="×" />
         </span>
       </div>
@@ -977,7 +1006,7 @@ function ProofBar({ label, views, width, muted = false }: { label: string; views
       </div>
       <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
         <div
-          className={cn("lp-grow-x h-full rounded-full", muted ? "bg-slate-300" : "bg-gradient-to-r from-blue-600 to-blue-400")}
+          className={cn("lp-grow-x h-full rounded-full", muted ? "bg-slate-300" : "bg-gradient-to-r from-[#c8000f] to-[#ff3b45]")}
           style={{ width: `${width}%` }}
         />
       </div>
@@ -1047,7 +1076,7 @@ function NicheExplorer({ niches }: { niches: LandingData["niches"] }) {
         </div>
 
         <Reveal className="mt-12 flex justify-center">
-          <Link href="/signup" className="group inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700">
+          <Link href="/signup" className="group inline-flex items-center gap-2 text-sm font-semibold text-[#b8000f] hover:text-[#8f000b]">
             {d.cta} <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
           </Link>
         </Reveal>
@@ -1068,7 +1097,7 @@ function Method() {
         <SectionHeader icon={Compass} eyebrow={m.eyebrow} title={m.title} />
         <div className="relative mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
           <Reveal className="absolute top-6 right-0 left-0 hidden md:block">
-            <div aria-hidden className="lp-grow-x h-px bg-gradient-to-r from-transparent via-blue-300 to-transparent" />
+            <div aria-hidden className="lp-grow-x h-px bg-gradient-to-r from-transparent via-red-300 to-transparent" />
           </Reveal>
           {m.steps.map((s, i) => (
             <Reveal key={s.title} delay={i * 120} className="relative">
@@ -1099,7 +1128,7 @@ function Comparison() {
           <div className="grid grid-cols-[1.1fr_1fr_1fr] bg-slate-50 text-xs font-medium tracking-wider text-slate-500 uppercase sm:text-sm sm:tracking-normal sm:normal-case">
             <div className="p-4 sm:p-5" />
             <div className="p-4 sm:p-5">{c.seoTools}</div>
-            <div className="bg-blue-50 p-4 text-slate-900 sm:p-5">{t.brand}</div>
+            <div className="bg-red-50/70 p-4 text-slate-900 sm:p-5">{t.brand}</div>
           </div>
           {c.rows.map(([label, them, us]) => (
             <div key={label} className="grid grid-cols-[1.1fr_1fr_1fr] border-t border-slate-100 text-sm">
@@ -1107,8 +1136,8 @@ function Comparison() {
               <div className="flex items-start gap-2 p-4 text-slate-400 sm:p-5">
                 <X className="mt-0.5 size-4 shrink-0 text-slate-300" /> {them}
               </div>
-              <div className="flex items-start gap-2 bg-blue-50/50 p-4 text-slate-800 sm:p-5">
-                <Check className="mt-0.5 size-4 shrink-0 text-blue-500" /> {us}
+              <div className="flex items-start gap-2 bg-red-50/40 p-4 text-slate-800 sm:p-5">
+                <Check className="mt-0.5 size-4 shrink-0 text-[#e3061a]" /> {us}
               </div>
             </div>
           ))}
@@ -1156,36 +1185,6 @@ function Faq() {
   )
 }
 
-// --- FINAL CTA ---
-
-function FinalCta() {
-  const { t } = useI18n()
-  const c = t.landing.finalCta
-
-  return (
-    <section className="px-4 py-24">
-      <Reveal className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-slate-950 px-6 py-20 text-center text-white">
-        <div aria-hidden className="lp-aurora absolute top-[calc(50%-15rem)] left-[calc(50%-25rem)] h-[30rem] w-[50rem] rounded-full opacity-90" />
-        <div className="relative">
-          <h2 className="mx-auto max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-6xl">{c.title}</h2>
-          <p className="mx-auto mt-5 max-w-xl text-lg text-white/65">{c.text(t.brand)}</p>
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/signup"
-              className="lp-shine group relative inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3.5 font-semibold text-slate-900 transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.3)]"
-            >
-              {c.signUp} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <a href="#demo" className="rounded-2xl border border-white/20 px-6 py-3.5 font-medium text-white/85 transition-colors hover:bg-white/10">
-              {c.demo}
-            </a>
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  )
-}
-
 // --- SHARED ---
 
 type Tone = "light" | "dark"
@@ -1198,7 +1197,7 @@ function SectionEyebrow({ icon: Icon, children, tone = "light" }: { icon: React.
         tone === "light" ? "border-slate-200 bg-white text-slate-600" : "border-white/15 bg-white/[0.04] text-white/70"
       )}
     >
-      <Icon className={cn("size-3.5", tone === "light" ? "text-blue-500" : "text-blue-400")} /> {children}
+      <Icon className={cn("size-3.5", tone === "light" ? "text-[#e3061a]" : "text-[#ff4d4f]")} /> {children}
     </span>
   )
 }

@@ -1388,6 +1388,8 @@ const en: Messages = {
       opportunity: "opportunity",
       trendsTitle: "Breakout creators",
       trendsText: "The channels taking off right now, ranked by growth speed.",
+      trendRising: "Growing fast",
+      trendSlowing: "Slowing down",
       thumbsTitle: "Thumbnail ideas",
       thumbsText: "Decode the thumbnails that get clicks in your niche and compare them side by side.",
       thumbTags: ["Face", "Bold text", "Contrast", "Before/after"],
