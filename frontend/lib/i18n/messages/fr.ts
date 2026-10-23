@@ -1352,6 +1352,9 @@ const fr = {
       subtitle: "Vidéos qui surperforment leur chaîne",
       filters: ["Format long", "Outlier ≥ 10×", "Toutes chaînes", "Tri : score viral"],
       loading: "Meilleurs outliers du jour",
+      scanning: (videos: string) => `Analyse de ${videos} vidéos…`,
+      searchSteps: (channels: string) => [`${channels} chaînes passées au crible`, "Comparées à la médiane de leur chaîne", "Classées par score viral"],
+      found: (n: number) => `${n} outliers trouvés`,
     },
     problem: {
       eyebrow: "Le problème",

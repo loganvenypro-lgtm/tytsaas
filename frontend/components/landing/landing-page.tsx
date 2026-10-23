@@ -95,7 +95,7 @@ export function LandingPage({ data }: { data: LandingData }) {
     <div className="lp-root relative min-h-screen overflow-x-clip bg-white text-slate-900 selection:bg-red-100">
       <Navbar freshWeek={stats.freshWeek} />
       <Hero videos={videos} creators={creators} stats={stats} />
-      <ProductPreview videos={videos.slice(0, 6)} />
+      <ProductPreview videos={videos.slice(0, 6)} stats={stats} />
       <Problem />
       <OutlierExplainer />
       <Features videos={videos} creators={creators} />
@@ -431,7 +431,7 @@ function ThumbnailWall({ videos }: { videos: LandingVideo[] }) {
 
 // --- PRODUCT PREVIEW ---
 
-function ProductPreview({ videos }: { videos: LandingVideo[] }) {
+function ProductPreview({ videos, stats }: { videos: LandingVideo[]; stats: LandingStats }) {
   const frameRef = useRef<HTMLDivElement>(null)
 
   // The frame starts tilted and flattens as it scrolls into view.
@@ -454,14 +454,17 @@ function ProductPreview({ videos }: { videos: LandingVideo[] }) {
       <div className="relative mx-auto max-w-6xl">
         <div aria-hidden className="absolute -inset-x-10 -top-10 bottom-10 rounded-[3rem] bg-gradient-to-b from-[#e3061a]/15 via-[#ff4d4f]/5 to-transparent blur-3xl" />
         <div ref={frameRef} className="relative origin-top transition-transform duration-150 ease-out will-change-transform">
-          <AppFrame videos={videos} />
+          <AppFrame videos={videos} stats={stats} />
         </div>
       </div>
     </section>
   )
 }
 
-function AppFrame({ videos }: { videos: LandingVideo[] }) {
+// The preview's fake search, in ms: the query types itself, the index is scanned, three checks land
+const SEARCH = { typed: 700, scanned: 3000, steps: [1300, 2100, 2900], total: 3700 }
+
+function AppFrame({ videos, stats }: { videos: LandingVideo[]; stats: LandingStats }) {
   const { t } = useI18n()
   const p = t.landing.preview
   const sideIcons = [LayoutGrid, Flame, TrendingUp, Compass, ImageIcon, Type, Wallet]
@@ -480,7 +483,7 @@ function AppFrame({ videos }: { videos: LandingVideo[] }) {
         observer.disconnect()
         if (reduced) return setPhase("done")
         setPhase("loading")
-        timer = setTimeout(() => setPhase("done"), 1700)
+        timer = setTimeout(() => setPhase("done"), SEARCH.total)
       },
       { threshold: 0.35 }
     )
@@ -540,21 +543,81 @@ function AppFrame({ videos }: { videos: LandingVideo[] }) {
                 {phase !== "done" && <PreviewCardSkeleton />}
               </div>
             ))}
-            {phase === "loading" && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center" role="status">
-                <div className="lp-swap w-60 rounded-2xl border border-slate-200 bg-white/95 px-5 py-4 shadow-[0_20px_50px_-20px_rgba(15,23,42,0.35)] backdrop-blur">
-                  <p className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-900">
-                    <Flame className="lp-pulse size-4 text-[#e3061a]" />
-                    {p.loading}
-                  </p>
-                  <div className="mt-3 h-1 overflow-hidden rounded-full bg-slate-100">
-                    <div className="lp-load-bar h-full rounded-full bg-[#e3061a]" />
-                  </div>
-                </div>
-              </div>
-            )}
+            {phase === "loading" && <PreviewSearch stats={stats} found={videos.length} />}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The panel over the placeholders while the preview searches: the query types itself in a
+ * search field, a counter runs through the index with the bar, then three checks land.
+ */
+function PreviewSearch({ stats, found }: { stats: LandingStats; found: number }) {
+  const { t, locale } = useI18n()
+  const p = t.landing.preview
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    let frame = 0
+    const start = performance.now()
+    const tick = (now: number) => {
+      setElapsed(now - start)
+      if (now - start < SEARCH.total) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
+  const query = p.loading.slice(0, Math.ceil(p.loading.length * Math.min(1, elapsed / SEARCH.typed)))
+  const scan = Math.min(1, Math.max(0, (elapsed - SEARCH.typed) / (SEARCH.scanned - SEARCH.typed)))
+  // Eased so the counter rushes at first and settles on the real index size
+  const eased = 1 - (1 - scan) ** 3
+  const number = (n: number) => Math.round(n).toLocaleString(locale)
+  const steps = p.searchSteps(number(stats.channels))
+  const done = elapsed >= SEARCH.steps[2]
+
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4" role="status">
+      <div className="lp-swap w-full max-w-sm rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_30px_70px_-25px_rgba(15,23,42,0.45)] backdrop-blur">
+        <div className="flex h-10 items-center gap-2.5 rounded-xl bg-slate-50 px-3 ring-1 ring-slate-200">
+          <Search className={cn("size-4 shrink-0", scan > 0 && !done ? "lp-search-scan text-[#e3061a]" : "text-slate-400")} />
+          <span className="truncate text-sm font-medium text-slate-900">
+            {query}
+            {elapsed < SEARCH.typed && <span className="lp-caret ml-px inline-block h-3.5 w-px translate-y-0.5 bg-[#e3061a]" />}
+          </span>
+        </div>
+
+        <div className="mt-3.5 flex items-baseline justify-between gap-3 text-xs">
+          <span className={cn("font-medium tabular-nums", done ? "text-[#c8000f]" : "text-slate-500")}>
+            {done ? p.found(found) : p.scanning(number(stats.videos * eased))}
+          </span>
+          <span className="text-slate-400 tabular-nums">{Math.round(eased * 100)} %</span>
+        </div>
+        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-100">
+          <div className="h-full origin-left rounded-full bg-[#e3061a]" style={{ transform: `scaleX(${eased})` }} />
+        </div>
+
+        <ul className="mt-3.5 space-y-1.5">
+          {steps.map((step, i) => {
+            const checked = elapsed >= SEARCH.steps[i]
+            return (
+              <li key={step} className={cn("flex items-center gap-2 text-xs transition-colors duration-300", checked ? "text-slate-700" : "text-slate-300")}>
+                <span
+                  className={cn(
+                    "flex size-4 shrink-0 items-center justify-center rounded-full transition-colors duration-300",
+                    checked ? "bg-[#e3061a] text-white" : "bg-slate-100"
+                  )}
+                >
+                  {checked && <Check className="lp-swap size-2.5" strokeWidth={3} />}
+                </span>
+                {step}
+              </li>
+            )
+          })}
+        </ul>
       </div>
     </div>
   )

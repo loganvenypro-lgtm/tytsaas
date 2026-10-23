@@ -1343,6 +1343,9 @@ const en: Messages = {
       subtitle: "Videos outperforming their channel",
       filters: ["Long-form", "Outlier ≥ 10×", "All channels", "Sort: viral score"],
       loading: "Best outliers today",
+      scanning: (videos) => `Scanning ${videos} videos…`,
+      searchSteps: (channels) => [`${channels} channels screened`, "Compared with their channel's median", "Ranked by viral score"],
+      found: (n) => `${n} outliers found`,
     },
     problem: {
       eyebrow: "The problem",

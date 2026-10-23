@@ -306,25 +306,6 @@ body {
   filter: none;
 }
 
-.lp-spotlight::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(420px circle at var(--x, 50%) var(--y, 0%), rgba(227,6,26, 0.06), transparent 40%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.lp-spotlight:hover::before {
-  opacity: 1;
-}
-
-.lp-spotlight-dark::before {
-  background: radial-gradient(420px circle at var(--x, 50%) var(--y, 0%), rgba(255,59,69, 0.12), transparent 45%);
-}
-
 /* A light sweep across primary buttons every few seconds (the element sets its own position) */
 .lp-shine {
   overflow: hidden;
@@ -448,7 +429,7 @@ body {
   from { opacity: 0; transform: translateY(12px); filter: blur(4px); }
 }
 
-/* Landing product preview: placeholders, a search bar filling up, then the cards one by one */
+/* Landing product preview: placeholders, a search running over the index, then the cards one by one */
 .lp-skeleton {
   background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 40%, #f1f5f9 80%) 0 0 / 250% 100%;
   animation: lpShimmer 1.4s linear infinite;
@@ -459,14 +440,15 @@ body {
   to { background-position: -150% 0; }
 }
 
-.lp-load-bar {
-  transform-origin: left;
-  animation: lpLoadBar 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+/* The magnifier sweeps while the preview scans the index */
+.lp-search-scan {
+  animation: lpSearchScan 0.9s ease-in-out infinite;
 }
 
-@keyframes lpLoadBar {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+@keyframes lpSearchScan {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(2px, -1px) rotate(-8deg); }
+  75% { transform: translate(-2px, 1px) rotate(8deg); }
 }
 
 .lp-card-in {
@@ -484,7 +466,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .lp-reveal { opacity: 1; transform: none; filter: none; transition: none; }
   .lp-aurora, .lp-marquee, .lp-float, .lp-caret, .lp-pulse, .lp-swap, .lp-shine::after { animation: none; }
-  .lp-skeleton, .lp-load-bar, .lp-card-in { animation: none; }
+  .lp-skeleton, .lp-search-scan, .lp-card-in { animation: none; }
   .lp-grow-x { transform: none; }
   .lp-gauge { stroke-dashoffset: 41; }
   .lp-draw { stroke-dashoffset: 0; }
