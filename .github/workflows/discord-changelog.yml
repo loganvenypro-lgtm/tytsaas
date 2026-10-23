@@ -1,0 +1,46 @@
+# Posts the commit messages of every push to main to a Discord channel,
+# as a changelog for users. The webhook URL lives in the repo secret
+# DISCORD_CHANGELOG_WEBHOOK. Merge commits and commits containing
+# "[skip changelog]" are left out.
+name: Discord changelog
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post commits to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "DISCORD_CHANGELOG_WEBHOOK is not set, skipping."
+            exit 0
+          fi
+
+          lines=$(jq -r '
+            [.commits[]
+              | select(.message | test("^Merge ") | not)
+              | select(.message | test("\\[skip changelog\\]"; "i") | not)
+              | "• " + (.message | split("\n")[0])]
+            | join("\n")' "$GITHUB_EVENT_PATH")
+
+          if [ -z "$lines" ]; then
+            echo "Nothing to announce."
+            exit 0
+          fi
+
+          payload=$(jq -n --arg desc "${lines:0:4000}" --arg ts "$(jq -r '.head_commit.timestamp' "$GITHUB_EVENT_PATH")" '{
+            username: "Mises à jour",
+            embeds: [{
+              title: "🚀 Nouvelle mise à jour",
+              description: $desc,
+              color: 5814783,
+              timestamp: $ts
+            }]
+          }')
+
+          curl -fsS -H "Content-Type: application/json" -d "$payload" "$WEBHOOK"
