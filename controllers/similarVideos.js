@@ -78,9 +78,16 @@ export async function similarVideos(req, res) {
   const videoId = parseVideoId(req.query.video);
   if (!videoId && !text) return res.status(400).json({ error: "Indique une vidéo ou un sujet." });
 
-  // Not the list pages' defaults: any date, every video (not only quality outliers), no title search.
+  // Not the list pages' defaults: any date, format, country and genre, every video (not only quality outliers), no title search.
   const { q: _q, ...filterQuery } = req.query;
-  const { where: filters, applied } = applyFilters(VIDEO_SPEC, { period: "all", relevant: "false", ...filterQuery });
+  const { where: filters, applied } = applyFilters(VIDEO_SPEC, {
+    period: "all",
+    format: "all",
+    excludeIndia: "false",
+    excludeMusic: "false",
+    relevant: "false",
+    ...filterQuery,
+  });
 
   let source = null;
   let query;

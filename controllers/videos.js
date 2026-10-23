@@ -29,7 +29,9 @@ export const languageOptions = () => Object.entries(LANGUAGES).map(([value, l]) 
 export const categoryOptions = () => Object.entries(CATEGORIES).map(([value, l]) => ({ value: Number(value), label: l }));
 const values = (options) => () => options().map((o) => o.value);
 
-const channelAgeDays = sql`extract(epoch from now() - c.channel_created_at) / 86400`;
+// Hindi, Bhojpuri, Bengali, Telugu, Tamil, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Odia, Assamese.
+const INDIAN_LANGS = ["hi", "bh", "bn", "te", "ta", "mr", "gu", "kn", "ml", "pa", "or", "as"];
+const channelAgeDays =sql`extract(epoch from now() - c.channel_created_at) / 86400`;
 
 /** Everything the video lists can be filtered and sorted by. */
 export const VIDEO_SPEC = {
@@ -44,7 +46,8 @@ export const VIDEO_SPEC = {
       key: "format",
       type: "choice",
       label: label("Format", "Format"),
-      default: "all",
+      // Shorts' outlier scores dwarf long-form ones and would fill the top: long-form unless asked.
+      default: "long",
       options: [
         { value: "all", label: label("All", "Tous") },
         { value: "long", label: label("Long-form", "Vidéos longues"), where: sql`not v.is_short` },
@@ -138,6 +141,30 @@ export const VIDEO_SPEC = {
       label: label("Hide made-for-kids", "Masquer le contenu enfants"),
       default: false,
       where: (on) => (on ? sql`v.made_for_kids is not true` : null),
+    },
+    {
+      // Songs, clips and playlists from artists and labels. Beats and music reviews are creators' work: kept.
+      key: "excludeMusic",
+      type: "bool",
+      label: label("Hide music channels", "Masquer les chaînes musique"),
+      default: true,
+      where: (on) =>
+        on
+          ? sql`not ((coalesce(v.niche, '') = 'music' and coalesce(v.sub_niche, '') not in ('music_production', 'music_commentary'))
+              or coalesce(v.category_id, 0) = 10 or coalesce(v.format, '') = 'music_video')`
+          : null,
+    },
+    {
+      // Old Indian videos crowd the tops. Many of these channels have no country and Hinglish titles
+      // get odd languages, so an Indian script in the title counts too.
+      key: "excludeIndia",
+      type: "bool",
+      label: label("Hide Indian videos", "Masquer les vidéos indiennes"),
+      default: true,
+      where: (on) =>
+        on
+          ? sql`not (coalesce(c.country, '') = 'IN' or coalesce(v.lang, '') = any(${INDIAN_LANGS}) or v.title ~ '[ऀ-ൿ]')`
+          : null,
     },
   ],
   sorts: [
