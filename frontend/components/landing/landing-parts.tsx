@@ -153,7 +153,7 @@ export function Typewriter({ words }: { words: string[] }) {
   )
 }
 
-/** Card with a soft light that follows the cursor. */
+/** Feature card: a bordered panel whose border firms up on hover. */
 export function SpotlightCard({
   children,
   className,
@@ -163,25 +163,13 @@ export function SpotlightCard({
   className?: string
   tone?: "light" | "dark"
 }) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const el = ref.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    el.style.setProperty("--x", `${e.clientX - rect.left}px`)
-    el.style.setProperty("--y", `${e.clientY - rect.top}px`)
-  }
-
   return (
     <div
-      ref={ref}
-      onMouseMove={onMove}
       className={cn(
-        "lp-spotlight group relative overflow-hidden rounded-3xl border transition-all duration-300",
+        "group relative overflow-hidden rounded-3xl border transition-all duration-300",
         tone === "light"
           ? "border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow-md"
-          : "lp-spotlight-dark border-white/10 bg-white/[0.03] hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.05]",
+          : "border-white/10 bg-white/[0.03] hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.05]",
         className
       )}
     >
