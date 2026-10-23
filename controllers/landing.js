@@ -9,7 +9,9 @@ let cached = null;
 const NOT_A_BREAKOUT = /full movie|official|#|cover|bass test|lyrics|trailer|\bmusic\b|\bM\/?V\b|highlights|S\d+E\d+|^video [\w-]+$|background|no music|screen saver/i;
 // Titles outside the Latin script read as noise to a French or English-speaking visitor.
 const NON_LATIN = /[^\p{Script=Latin}\p{N}\p{P}\p{Zs}\p{Sc}\p{Sm}]/u;
-const isShowcase = (title) => !NOT_A_BREAKOUT.test(title) && !NON_LATIN.test(title);
+// Racy or tabloid topics that would cheapen the page
+const RACY = /michetonn|escort|onlyfans|\bsexe?\b|sexy|porn|nude|naked|strip|prostitu|sugar ?dadd|\bpute\b|\bxxx\b/i;
+const isShowcase = (title) => !NOT_A_BREAKOUT.test(title) && !NON_LATIN.test(title) && !RACY.test(title);
 
 // English or French uploads only: romanized Hindi or Urdu titles pass the Latin check, so the
 // language and the channel's country do the filtering (no regional channels on the landing).
