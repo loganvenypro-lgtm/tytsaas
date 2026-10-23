@@ -1434,6 +1434,11 @@ const en: Messages = {
     method: {
       eyebrow: "How it works",
       title: "From zero ideas to a video plan, in three steps.",
+      yourChannel: "Your channel",
+      competitorsFound: "Competitors found",
+      continue: "Continue",
+      ideasToday: "Your ideas this week",
+      ideaKinds: ["Topics", "Titles", "Thumbnails"],
       steps: [
         {
           title: "Add your channel",

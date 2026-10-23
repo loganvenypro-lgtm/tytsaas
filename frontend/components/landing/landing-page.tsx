@@ -19,6 +19,7 @@ import {
   Hourglass,
   Image as ImageIcon,
   LayoutGrid,
+  MousePointer2,
   Play,
   Search,
   Sparkles,
@@ -99,7 +100,7 @@ export function LandingPage({ data }: { data: LandingData }) {
       <Features videos={videos} creators={creators} />
       <Proof videos={breakouts} />
       <NicheExplorer niches={niches} />
-      <Method />
+      <Method videos={videos} creators={creators} />
       <Comparison />
       <Faq />
       <SiteFooter />
@@ -1087,30 +1088,117 @@ function NicheExplorer({ niches }: { niches: LandingData["niches"] }) {
 
 // --- METHOD ---
 
-function Method() {
+// Three steps as three cards: a small piece of the product on top, the step underneath
+function Method({ videos, creators }: { videos: LandingVideo[]; creators: LandingCreator[] }) {
   const { t } = useI18n()
   const m = t.landing.method
+  const visuals = [<StepChannel key="channel" creators={creators} />, <StepNiche key="niche" videos={videos} />, <StepIdeas key="ideas" />]
 
   return (
-    <section id="method" className="scroll-mt-24 bg-slate-50/70 px-4 py-24">
+    <section id="method" className="scroll-mt-24 px-4 py-24">
       <div className="mx-auto max-w-6xl">
-        <SectionHeader icon={Compass} eyebrow={m.eyebrow} title={m.title} />
-        <div className="relative mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
-          <Reveal className="absolute top-6 right-0 left-0 hidden md:block">
-            <div aria-hidden className="lp-grow-x h-px bg-gradient-to-r from-transparent via-red-300 to-transparent" />
-          </Reveal>
+        <Reveal>
+          <h2 className="mx-auto max-w-3xl text-center text-4xl font-semibold tracking-[-0.035em] text-balance text-slate-950 sm:text-5xl">{m.title}</h2>
+        </Reveal>
+        <div className="mt-14 grid grid-cols-1 gap-5 md:grid-cols-3">
           {m.steps.map((s, i) => (
-            <Reveal key={s.title} delay={i * 120} className="relative">
-              <span className="relative z-10 flex size-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold shadow-sm">
-                <span className="lp-gradient-text">0{i + 1}</span>
-              </span>
-              <h3 className="mt-6 text-xl font-semibold tracking-tight">{s.title}</h3>
-              <p className="mt-2 text-slate-600">{s.text}</p>
+            <Reveal key={s.title} delay={i * 100} className="h-full">
+              <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-[#f5f4f3]">
+                <div aria-hidden className="relative flex h-64 items-center justify-center overflow-hidden">
+                  {visuals[i]}
+                </div>
+                <div className="px-8 pt-2 pb-9 text-center">
+                  <h3 className="text-xl font-semibold tracking-tight text-slate-950">{s.title}</h3>
+                  <p className="mx-auto mt-2.5 max-w-xs leading-relaxed text-pretty text-slate-500">{s.text}</p>
+                </div>
+              </div>
             </Reveal>
           ))}
         </div>
       </div>
     </section>
+  )
+}
+
+/** Step 1: the channel field, the competitors it found, and the cursor about to continue. */
+function StepChannel({ creators }: { creators: LandingCreator[] }) {
+  const { t } = useI18n()
+  const m = t.landing.method
+  const [mine, ...others] = creators
+  if (!mine) return null
+
+  return (
+    <div className="w-[85%] max-w-72">
+      <p className="text-[11px] font-semibold text-slate-800">{m.yourChannel}</p>
+      <div className="mt-1.5 flex items-center gap-2 rounded-xl bg-white px-2.5 py-2 ring-1 ring-slate-200">
+        <img src={mine.avatar} alt="" referrerPolicy="no-referrer" className="size-5 rounded-full" />
+        <span className="truncate text-xs font-medium text-slate-800">{mine.name}</span>
+        <BadgeCheck className="ml-auto size-3.5 shrink-0 text-[#e3061a]" />
+      </div>
+      <p className="mt-4 text-[11px] text-slate-500">{m.competitorsFound}</p>
+      <div className="mt-1.5 flex items-center justify-between">
+        <div className="flex -space-x-2">
+          {others.slice(0, 5).map((c) => (
+            <img key={c.name} src={c.avatar} alt="" referrerPolicy="no-referrer" className="size-7 rounded-full bg-slate-200 ring-2 ring-[#f5f4f3]" />
+          ))}
+        </div>
+        <span className="relative rounded-full bg-slate-950 px-3 py-1 text-[11px] font-medium text-white">
+          {m.continue}
+          <MousePointer2 className="absolute -right-3 top-5 size-5 fill-slate-950 stroke-white" />
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/** Step 2: outliers of the niche, as tall cuts of real thumbnails fading out at the bottom. */
+function StepNiche({ videos }: { videos: LandingVideo[] }) {
+  const picks = videos.slice(0, 3)
+  if (picks.length < 3) return null
+  return (
+    <div className="absolute inset-x-0 top-6 flex justify-center gap-2.5 [mask-image:linear-gradient(180deg,#000_55%,transparent)]">
+      {picks.map((v, i) => (
+        <div key={v.id} className={cn("relative h-56 w-28 shrink-0 overflow-hidden rounded-2xl", i === 1 ? "mt-0" : "mt-6")}>
+          <img src={v.thumbnail} alt="" loading="lazy" className="size-full object-cover" />
+          <span className="absolute top-2 left-2 rounded-md bg-[#e3061a] px-1.5 py-0.5 text-[10px] font-bold text-white">
+            {formatMultiplier(v.outlierMultiplier)}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Step 3: the week's ideas, split by kind, rising on a small chart. */
+function StepIdeas() {
+  const { t } = useI18n()
+  const m = t.landing.method
+  const series = [
+    { color: "#e3061a", d: "M0 70 L22 58 L44 64 L66 40 L88 46 L110 22 L132 30 L154 10" },
+    { color: "#10b981", d: "M0 78 L22 72 L44 74 L66 60 L88 62 L110 48 L132 52 L154 40" },
+    { color: "#94a3b8", d: "M0 84 L22 82 L44 78 L66 80 L88 72 L110 74 L132 66 L154 64" },
+  ]
+  return (
+    <div className="w-[85%] max-w-72 rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">
+      <p className="text-[11px] text-slate-500">{m.ideasToday}</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {m.ideaKinds.map((kind, i) => (
+          <span key={kind} className="flex items-center gap-1 rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-700 ring-1 ring-slate-200">
+            <span className="size-1.5 rounded-full" style={{ background: series[i].color }} />
+            {kind} <span className="text-slate-400">{[12, 8, 6][i]}</span>
+          </span>
+        ))}
+      </div>
+      <svg viewBox="0 0 154 90" className="mt-3 w-full overflow-visible">
+        {[20, 45, 70].map((y) => (
+          <line key={y} x1="0" x2="154" y1={y} y2={y} stroke="#f1f5f9" />
+        ))}
+        {series.map((s) => (
+          <path key={s.color} d={s.d} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" className="lp-draw" pathLength={260} />
+        ))}
+        <circle cx="154" cy="10" r="3.5" fill="#e3061a" />
+      </svg>
+    </div>
   )
 }
 

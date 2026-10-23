@@ -1446,6 +1446,11 @@ const fr = {
     method: {
       eyebrow: "Méthode",
       title: "De zéro idée à un plan de vidéos, en trois étapes.",
+      yourChannel: "Ta chaîne",
+      competitorsFound: "Concurrents trouvés",
+      continue: "Continuer",
+      ideasToday: "Tes idées cette semaine",
+      ideaKinds: ["Sujets", "Titres", "Miniatures"],
       steps: [
         {
           title: "Ajoutez votre chaîne",
