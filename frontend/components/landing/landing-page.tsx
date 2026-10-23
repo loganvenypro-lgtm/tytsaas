@@ -1,7 +1,7 @@
 "use client"
 /* eslint-disable @next/next/no-img-element -- remote YouTube thumbnails and avatars */
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -819,24 +819,7 @@ function Features({ videos, creators }: { videos: LandingVideo[]; creators: Land
           {/* AI assistant */}
           <Reveal className="md:col-span-2">
             <FeatureCard title={f.aiTitle} text={f.aiText}>
-              <div className="space-y-3">
-                <div className="ml-auto w-fit max-w-md rounded-2xl rounded-br-md bg-slate-950 px-4 py-2.5 text-sm text-white">{f.aiQuestion}</div>
-                <div className="flex max-w-lg gap-3">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-slate-200">
-                    <ReturbeMark className="size-4" />
-                  </span>
-                  <div className="rounded-2xl rounded-tl-md border border-slate-200/80 bg-white px-4 py-3 text-sm text-slate-700">
-                    {f.aiAnswer}
-                    <span className="mt-2 block text-slate-500">
-                      {f.aiIdeas.map((idea, i) => (
-                        <span key={idea} className="block">
-                          {i + 1}. {idea}
-                        </span>
-                      ))}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <AiChat />
             </FeatureCard>
           </Reveal>
 
@@ -859,6 +842,85 @@ function Features({ videos, creators }: { videos: LandingVideo[]; creators: Land
         </div>
       </div>
     </section>
+  )
+}
+
+/**
+ * The assistant card, on a loop: the question types itself, the assistant thinks,
+ * its answer streams in word by word, then the three ideas land one by one.
+ * Shown complete under reduced motion.
+ */
+function AiChat() {
+  const { t } = useI18n()
+  const f = t.landing.features
+  const words = useMemo(() => f.aiAnswer.split(" "), [f.aiAnswer])
+  // 0 typing the question, 1 thinking, 2 streaming the answer, 3 listing ideas, 4 holding
+  const [phase, setPhase] = useState(0)
+  const [n, setN] = useState(0)
+
+  useEffect(() => {
+    let step: ReturnType<typeof setTimeout>
+    const at = (ms: number, fn: () => void) => (step = setTimeout(fn, ms))
+    const next = (p: number) => {
+      setPhase(p)
+      setN(0)
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (phase !== 4) at(0, () => next(4))
+    } else if (phase === 0) at(n < f.aiQuestion.length ? 35 : 500, () => (n < f.aiQuestion.length ? setN(n + 1) : next(1)))
+    else if (phase === 1) at(1200, () => next(2))
+    else if (phase === 2) at(n < words.length ? 70 : 300, () => (n < words.length ? setN(n + 1) : next(3)))
+    else if (phase === 3) at(450, () => (n < f.aiIdeas.length ? setN(n + 1) : next(4)))
+    else at(4000, () => next(0))
+    return () => clearTimeout(step)
+  }, [phase, n, words, f.aiQuestion, f.aiIdeas.length])
+
+  const question = phase === 0 ? f.aiQuestion.slice(0, n) : f.aiQuestion
+  const sent = phase > 0
+  const answer = phase === 2 ? words.slice(0, n).join(" ") : phase > 2 ? f.aiAnswer : ""
+  const ideas = phase === 3 ? n : phase === 4 ? f.aiIdeas.length : 0
+
+  return (
+    <div className="flex min-h-64 flex-col justify-end gap-3">
+      <div
+        className={cn(
+          "ml-auto w-fit max-w-md rounded-2xl rounded-br-md px-4 py-2.5 text-sm transition-colors duration-300",
+          sent ? "bg-slate-950 text-white" : "border border-dashed border-slate-300 bg-white text-slate-700"
+        )}
+      >
+        {question || "\u00a0"}
+        {!sent && <span className="lp-caret ml-px inline-block h-[1em] w-px translate-y-0.5 bg-[#e3061a]" />}
+      </div>
+      {phase > 0 && (
+        <div className="lp-swap flex max-w-lg gap-3">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-slate-200">
+            <ReturbeMark className="size-4" />
+          </span>
+          <div className="rounded-2xl rounded-tl-md border border-slate-200/80 bg-white px-4 py-3 text-sm text-slate-700">
+            {phase === 1 ? (
+              <span className="flex h-5 items-center gap-1" aria-hidden>
+                {[0, 150, 300].map((d) => (
+                  <span key={d} className="size-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: `${d}ms` }} />
+                ))}
+              </span>
+            ) : (
+              <>
+                {answer}
+                {ideas > 0 && (
+                  <span className="mt-2 block text-slate-500">
+                    {f.aiIdeas.slice(0, ideas).map((idea, i) => (
+                      <span key={idea} className="lp-swap block">
+                        {i + 1}. {idea}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -1092,7 +1154,7 @@ function NicheExplorer({ niches }: { niches: LandingData["niches"] }) {
 function Method({ videos, creators }: { videos: LandingVideo[]; creators: LandingCreator[] }) {
   const { t } = useI18n()
   const m = t.landing.method
-  const visuals = [<StepChannel key="channel" creators={creators} />, <StepNiche key="niche" videos={videos} />, <StepIdeas key="ideas" />]
+  const visuals = [<StepChannel key="channel" creators={creators} />, <StepNiche key="niche" videos={videos} />, <StepIdeas key="ideas" videos={videos} />]
 
   return (
     <section id="method" className="scroll-mt-24 px-4 py-24">
@@ -1120,47 +1182,125 @@ function Method({ videos, creators }: { videos: LandingVideo[]; creators: Landin
   )
 }
 
-/** Step 1: the channel field, the competitors it found, and the cursor about to continue. */
+/**
+ * Step 1, on a loop: a channel name types itself, its competitors pop in one by one,
+ * the cursor clicks Continue, then the next channel. Static under reduced motion.
+ */
 function StepChannel({ creators }: { creators: LandingCreator[] }) {
   const { t } = useI18n()
   const m = t.landing.method
-  const [mine, ...others] = creators
+  const channels = useMemo(() => creators.slice(0, 6), [creators])
+  const [index, setIndex] = useState(0)
+  const [typed, setTyped] = useState(0)
+  const [found, setFound] = useState(0)
+  const [clicked, setClicked] = useState(false)
+
+  useEffect(() => {
+    if (channels.length < 2) return
+    let step: ReturnType<typeof setTimeout>
+    const at = (ms: number, fn: () => void) => (step = setTimeout(fn, ms))
+    const name = channels[index].name
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (typed < name.length)
+        at(0, () => {
+          setTyped(name.length)
+          setFound(5)
+        })
+    } else if (typed < name.length) at(55, () => setTyped(typed + 1))
+    else if (found < 5) at(found === 0 ? 400 : 160, () => setFound(found + 1))
+    else if (!clicked) at(700, () => setClicked(true))
+    else
+      at(900, () => {
+        setIndex((index + 1) % channels.length)
+        setTyped(0)
+        setFound(0)
+        setClicked(false)
+      })
+    return () => clearTimeout(step)
+  }, [channels, index, typed, found, clicked])
+
+  const mine = channels[index]
   if (!mine) return null
+  const done = typed >= mine.name.length
+  const others = creators.filter((c) => c.name !== mine.name).slice(index, index + 5)
 
   return (
     <div className="w-[85%] max-w-72">
       <p className="text-[11px] font-semibold text-slate-800">{m.yourChannel}</p>
-      <div className="mt-1.5 flex items-center gap-2 rounded-xl bg-white px-2.5 py-2 ring-1 ring-slate-200">
-        <img src={mine.avatar} alt="" referrerPolicy="no-referrer" className="size-5 rounded-full" />
-        <span className="truncate text-xs font-medium text-slate-800">{mine.name}</span>
-        <BadgeCheck className="ml-auto size-3.5 shrink-0 text-[#e3061a]" />
+      <div className="mt-1.5 flex h-9 items-center gap-2 rounded-xl bg-white px-2.5 ring-1 ring-slate-200">
+        <img src={mine.avatar} alt="" referrerPolicy="no-referrer" className={cn("size-5 rounded-full transition-opacity duration-300", done ? "opacity-100" : "opacity-0")} />
+        <span className="truncate text-xs font-medium text-slate-800">
+          {mine.name.slice(0, typed)}
+          {!done && <span className="lp-caret ml-px inline-block h-3 w-px translate-y-0.5 bg-[#e3061a]" />}
+        </span>
+        <BadgeCheck className={cn("ml-auto size-3.5 shrink-0 text-[#e3061a] transition-opacity duration-300", done ? "opacity-100" : "opacity-0")} />
       </div>
       <p className="mt-4 text-[11px] text-slate-500">{m.competitorsFound}</p>
-      <div className="mt-1.5 flex items-center justify-between">
+      <div className="mt-1.5 flex h-7 items-center justify-between">
         <div className="flex -space-x-2">
-          {others.slice(0, 5).map((c) => (
-            <img key={c.name} src={c.avatar} alt="" referrerPolicy="no-referrer" className="size-7 rounded-full bg-slate-200 ring-2 ring-[#f5f4f3]" />
+          {others.map((c, i) => (
+            <img
+              key={c.name}
+              src={c.avatar}
+              alt=""
+              referrerPolicy="no-referrer"
+              className={cn(
+                "size-7 rounded-full bg-slate-200 ring-2 ring-[#f5f4f3] transition-all duration-300",
+                i < found ? "scale-100 opacity-100" : "scale-50 opacity-0"
+              )}
+            />
           ))}
         </div>
-        <span className="relative rounded-full bg-slate-950 px-3 py-1 text-[11px] font-medium text-white">
+        <span className={cn("relative rounded-full bg-slate-950 px-3 py-1 text-[11px] font-medium text-white transition-transform duration-150", clicked && "scale-95")}>
           {m.continue}
-          <MousePointer2 className="absolute -right-3 top-5 size-5 fill-slate-950 stroke-white" />
+          <MousePointer2
+            className={cn(
+              "absolute -right-3 top-5 size-5 fill-slate-950 stroke-white transition-transform duration-500",
+              found >= 5 ? "translate-x-0 translate-y-0" : "translate-x-6 translate-y-4"
+            )}
+          />
         </span>
       </div>
     </div>
   )
 }
 
-/** Step 2: outliers of the niche, as tall cuts of real thumbnails fading out at the bottom. */
+/** A counter that goes up every `ms` while motion is allowed; stays at 0 under reduced motion. */
+function useLoop(ms: number) {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    const id = setInterval(() => setTick((n) => n + 1), ms)
+    return () => clearInterval(id)
+  }, [ms])
+  return tick
+}
+
+/**
+ * Step 2, on a loop: three tall cuts of real outliers; every couple of seconds one column
+ * swaps to the next outlier of the index and gets the red "spotted" ring.
+ */
 function StepNiche({ videos }: { videos: LandingVideo[] }) {
-  const picks = videos.slice(0, 3)
-  if (picks.length < 3) return null
+  const pool = videos.slice(0, 12)
+  const tick = useLoop(2200)
+  if (pool.length < 3) return null
+  // Tick t swaps column t % 3; a column that has swapped n times shows pool[col + 3n]
+  const active = tick % 3
+  const slots = [0, 1, 2].map((col) => pool[(col + 3 * Math.floor((tick + ((3 - col) % 3)) / 3)) % pool.length])
+
   return (
     <div className="absolute inset-x-0 top-6 flex justify-center gap-2.5 [mask-image:linear-gradient(180deg,#000_55%,transparent)]">
-      {picks.map((v, i) => (
-        <div key={v.id} className={cn("relative h-56 w-28 shrink-0 overflow-hidden rounded-2xl", i === 1 ? "mt-0" : "mt-6")}>
-          <img src={v.thumbnail} alt="" loading="lazy" className="size-full object-cover" />
-          <span className="absolute top-2 left-2 rounded-md bg-[#e3061a] px-1.5 py-0.5 text-[10px] font-bold text-white">
+      {slots.map((v, i) => (
+        <div
+          key={i}
+          className={cn(
+            "relative h-56 w-28 shrink-0 overflow-hidden rounded-2xl ring-2 transition-[box-shadow,ring-color] duration-500",
+            i === 1 ? "mt-0" : "mt-6",
+            tick > 0 && i === active ? "ring-[#e3061a] shadow-[0_10px_30px_-10px_rgba(227,6,26,0.6)]" : "ring-transparent"
+          )}
+        >
+          <img key={v.id} src={v.thumbnail} alt="" loading="lazy" className="lp-swap size-full object-cover" />
+          <span key={`${v.id}-x`} className="lp-swap absolute top-2 left-2 rounded-md bg-[#e3061a] px-1.5 py-0.5 text-[10px] font-bold text-white">
             {formatMultiplier(v.outlierMultiplier)}
           </span>
         </div>
@@ -1169,35 +1309,55 @@ function StepNiche({ videos }: { videos: LandingVideo[] }) {
   )
 }
 
-/** Step 3: the week's ideas, split by kind, rising on a small chart. */
-function StepIdeas() {
+/**
+ * Step 3, on a loop: an idea lands (a real outlier title), its kind's counter goes up,
+ * and the chart redraws every third idea.
+ */
+function StepIdeas({ videos }: { videos: LandingVideo[] }) {
   const { t } = useI18n()
   const m = t.landing.method
+  const tick = useLoop(2400)
   const series = [
     { color: "#e3061a", d: "M0 70 L22 58 L44 64 L66 40 L88 46 L110 22 L132 30 L154 10" },
     { color: "#10b981", d: "M0 78 L22 72 L44 74 L66 60 L88 62 L110 48 L132 52 L154 40" },
     { color: "#94a3b8", d: "M0 84 L22 82 L44 78 L66 80 L88 72 L110 74 L132 66 L154 64" },
   ]
+  const counts = [12, 8, 6].map((base, i) => base + Math.floor((tick + 2 - i) / 3))
+  const kind = tick % 3
+  const idea = videos.length ? videos[tick % Math.min(videos.length, 12)] : null
+
   return (
     <div className="w-[85%] max-w-72 rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">
       <p className="text-[11px] text-slate-500">{m.ideasToday}</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {m.ideaKinds.map((kind, i) => (
-          <span key={kind} className="flex items-center gap-1 rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-700 ring-1 ring-slate-200">
+        {m.ideaKinds.map((label, i) => (
+          <span
+            key={label}
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 transition-colors duration-300",
+              tick > 0 && i === kind ? "bg-red-50 text-slate-900 ring-red-200" : "bg-slate-50 text-slate-700 ring-slate-200"
+            )}
+          >
             <span className="size-1.5 rounded-full" style={{ background: series[i].color }} />
-            {kind} <span className="text-slate-400">{[12, 8, 6][i]}</span>
+            {label} <span className="text-slate-400 tabular-nums">{counts[i]}</span>
           </span>
         ))}
       </div>
-      <svg viewBox="0 0 154 90" className="mt-3 w-full overflow-visible">
-        {[20, 45, 70].map((y) => (
+      <svg key={`chart-${Math.floor(tick / 3)}`} viewBox="0 0 154 70" className="mt-3 w-full overflow-visible">
+        {[15, 35, 55].map((y) => (
           <line key={y} x1="0" x2="154" y1={y} y2={y} stroke="#f1f5f9" />
         ))}
         {series.map((s) => (
-          <path key={s.color} d={s.d} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" className="lp-draw" pathLength={260} />
+          <path key={s.color} d={s.d} transform="translate(0 -14)" fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" className="lp-draw" pathLength={260} />
         ))}
-        <circle cx="154" cy="10" r="3.5" fill="#e3061a" />
+        <circle cx="154" cy="-4" r="3.5" fill="#e3061a" />
       </svg>
+      {idea && (
+        <div key={`idea-${tick}`} className="lp-swap mt-2 flex items-center gap-2 rounded-xl bg-slate-50 p-1.5 ring-1 ring-slate-200/80">
+          <img src={idea.thumbnail} alt="" className="aspect-video w-12 shrink-0 rounded-md object-cover" />
+          <p className="line-clamp-1 text-[10px] font-medium text-slate-700">{idea.title}</p>
+        </div>
+      )}
     </div>
   )
 }

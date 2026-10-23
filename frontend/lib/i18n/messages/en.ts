@@ -1471,24 +1471,44 @@ const en: Messages = {
       title: "Frequently asked questions",
       items: [
         {
+          q: "I already watch YouTube every day, why pay for a tool?",
+          a: "Because the algorithm shows you what it wants, not what outperforms. Returbe compares every video to its channel's median across thousands of channels, and keeps only the ones that took off. What would take you hours of scrolling to spot, you get in two minutes.",
+        },
+        {
+          q: "How is it different from vidIQ or TubeBuddy?",
+          a: "Those tools mostly work on SEO: keywords, tags, search volume. Returbe starts from videos that already worked, on channels comparable to yours, to tell you what to film next. It's complementary, and it's what makes the difference on a video.",
+        },
+        {
           q: "What exactly is an outlier?",
-          a: "A video that gets far more views than its channel's median. A ×20 score means 20 times more views than a typical video from that channel.",
+          a: "A video that gets far more views than its channel's median. A ×20 score means 20 times the views of a usual video from that channel: the topic, title or thumbnail hooked far beyond the usual audience.",
         },
         {
-          q: "Where does the data come from?",
-          a: "Public YouTube data: views, dates, subscribers and channel history. It's collected continuously and we compute the scores ourselves.",
+          q: "My channel is small (or faceless), does it still work?",
+          a: "That's where it works best. Scores compare each video to its own channel, so a 5,000-subscriber channel doing ×100 stands out as much as a giant. You find ideas that proved they work without a big audience.",
         },
         {
-          q: "Do I need to connect my YouTube account?",
-          a: "No. Your channel's name or link is all it takes. We never get access to your account.",
+          q: "Isn't taking inspiration from outliers just copying?",
+          a: "No: you reuse a topic, an angle or a title structure that proved it works, not the video. That's what every creator who lasts does. Returbe also shows you the formats that keep coming back in your niche, so you can make your own version.",
         },
         {
-          q: "Does it work for a small or faceless channel?",
-          a: "Yes, that's actually where it works best. Scores compare each video with its own channel, so small channels that blow up stand out as much as big ones.",
+          q: "Is the data reliable and up to date?",
+          a: "It comes from YouTube's official API Services and is collected continuously. Views, medians and scores are recalculated every day, and the numbers on this page are the index's real numbers.",
         },
         {
-          q: "Which languages and niches?",
-          a: "All of them. The interface is in English and French, and the index covers videos in every language and on every topic.",
+          q: "Do I need to connect my YouTube account? Is it risky?",
+          a: "No, none of the research tools need it. If you connect your channel to analyze it, access is read-only: Returbe cannot publish, edit or delete anything, and you can revoke it in one click.",
+        },
+        {
+          q: "Which niches and languages?",
+          a: "Thousands of channels across dozens of niches: history, science, true crime, tech, finance, gaming, entertainment… The interface is in English and French, and the index follows videos in English, French and other languages.",
+        },
+        {
+          q: "How much time does it take each week?",
+          a: "Ten minutes is enough: your home fills itself with the videos taking off in your niche, and alerts tell you when a competitor posts an outlier. No need to watch YouTube all day.",
+        },
+        {
+          q: "What if it's not for me?",
+          a: "Cancel in one click, with no commitment, and keep access until the end of the paid period. Email us within 7 days of your first payment and we'll refund you, no questions asked.",
         },
       ],
     },

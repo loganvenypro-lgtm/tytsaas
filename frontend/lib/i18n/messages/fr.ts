@@ -1483,24 +1483,44 @@ const fr = {
       title: "Questions fréquentes",
       items: [
         {
+          q: "Je regarde déjà YouTube tous les jours, pourquoi payer un outil ?",
+          a: "Parce que l'algorithme vous montre ce qu'il veut, pas ce qui surperforme. Returbe compare chaque vidéo à la médiane de sa chaîne sur des milliers de chaînes, et ne garde que celles qui ont explosé. Ce que vous mettriez des heures à repérer en scrollant, vous l'avez en deux minutes.",
+        },
+        {
+          q: "En quoi c'est différent de vidIQ ou TubeBuddy ?",
+          a: "Ces outils travaillent surtout le référencement : mots-clés, tags, volumes de recherche. Returbe part des vidéos qui ont déjà marché, sur des chaînes comparables à la vôtre, pour vous dire quoi tourner ensuite. C'est complémentaire, et c'est ce qui fait la différence sur une vidéo.",
+        },
+        {
           q: "C'est quoi exactement un outlier ?",
-          a: "Une vidéo qui fait beaucoup plus de vues que la médiane de sa chaîne. Un score de ×20 veut dire 20 fois plus de vues qu'une vidéo habituelle de cette chaîne.",
+          a: "Une vidéo qui fait beaucoup plus de vues que la médiane de sa chaîne. Un score de ×20 veut dire 20 fois plus de vues qu'une vidéo habituelle de cette chaîne : le sujet, le titre ou la miniature ont accroché bien au-delà de l'audience habituelle.",
         },
         {
-          q: "D'où viennent les données ?",
-          a: "Des données publiques de YouTube : vues, dates, abonnés et historique des chaînes. Elles sont collectées en continu et les scores sont calculés par nos soins.",
+          q: "Ma chaîne est petite (ou faceless), ça marche quand même ?",
+          a: "C'est même là que ça marche le mieux. Les scores comparent chaque vidéo à sa propre chaîne, donc une chaîne de 5 000 abonnés qui fait ×100 ressort autant qu'un géant. Vous trouvez des idées qui ont prouvé qu'elles marchent sans grosse audience.",
         },
         {
-          q: "Faut-il connecter mon compte YouTube ?",
-          a: "Non. Il suffit du nom ou du lien de votre chaîne. Nous n'avons jamais accès à votre compte.",
+          q: "S'inspirer des outliers, ce n'est pas copier ?",
+          a: "Non : vous reprenez un sujet, un angle ou une structure de titre qui a prouvé qu'il plaît, pas la vidéo. C'est ce que font tous les créateurs qui durent. Returbe vous montre aussi les formats qui reviennent dans votre niche, pour en faire votre version.",
         },
         {
-          q: "Ça marche pour une petite chaîne ou une chaîne faceless ?",
-          a: "Oui, c'est même là que ça marche le mieux. Les scores comparent chaque vidéo à sa propre chaîne, donc les petites chaînes qui explosent ressortent autant que les grosses.",
+          q: "Les données sont-elles fiables et à jour ?",
+          a: "Elles viennent des services API officiels de YouTube et sont collectées en continu. Les vues, les médianes et les scores sont recalculés chaque jour, et les chiffres de cette page sont les vrais chiffres de l'index.",
         },
         {
-          q: "Quelles langues et quelles niches ?",
-          a: "Toutes. L'interface est en français et en anglais, et l'index couvre des vidéos de toutes les langues et de tous les sujets.",
+          q: "Faut-il connecter mon compte YouTube ? C'est risqué ?",
+          a: "Non, aucun outil de recherche n'en a besoin. Si vous connectez votre chaîne pour l'analyser, l'accès est en lecture seule : Returbe ne peut rien publier, modifier ni supprimer, et vous pouvez le retirer en un clic.",
+        },
+        {
+          q: "Quelles niches et quelles langues ?",
+          a: "Des milliers de chaînes dans des dizaines de niches : histoire, science, true crime, tech, finance, gaming, divertissement… L'interface est en français et en anglais, et l'index suit des vidéos en anglais, en français et dans d'autres langues.",
+        },
+        {
+          q: "Combien de temps ça me prend par semaine ?",
+          a: "Dix minutes suffisent : votre accueil se remplit tout seul des vidéos qui explosent dans votre niche, et les alertes vous préviennent quand un concurrent sort un outlier. Pas besoin de surveiller YouTube toute la journée.",
+        },
+        {
+          q: "Et si ça ne me convient pas ?",
+          a: "Vous annulez en un clic, sans engagement, et vous gardez l'accès jusqu'à la fin de la période payée. Écrivez-nous dans les 7 jours qui suivent votre premier paiement : on vous rembourse, sans question.",
         },
       ],
     },
