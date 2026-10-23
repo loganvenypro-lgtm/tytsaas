@@ -1,6 +1,9 @@
 import posthog from "posthog-js"
 
 import { identifyCurrentUser } from "@/lib/analytics"
+import { rememberVisitSource } from "@/lib/visit-source"
+
+rememberVisitSource()
 
 const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
 
